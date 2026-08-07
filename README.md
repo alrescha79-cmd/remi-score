@@ -1,56 +1,103 @@
-# Welcome to your Expo app 👋
+# RemiScore 🃏
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Pencatatan skor Remi digital untuk geng tongkrongan. Gantiin notebook yang gampang hilang dengan aplikasi offline-first: bikin geng, atur pemain, catat skor tiap ronde, dan pantau klasemen musim secara real-time.
 
-## Get started
+## Fitur
 
-1. Install dependencies
+- **Circle / geng** — bikin & kelola banyak geng (misal "Warkop Malam Minggu", "Basecamp Remi"), plus riwayat sesi lengkap dengan tanggal & ranking final.
+- **Player & sesi** — 2–7 pemain per sesi, registrasi pemain cepat per geng.
+- **Input skor cepat** — input per ronde dengan stepper (±5/±25) + input manual, validasi otomatis kelipatan 5, total & ranking langsung ter-update real-time.
+- **Riwayat per player** — tap pemain di sesi untuk lihat detail tiap ronde (delta, kumulatif, timestamp).
+- **Klasemen musim** — agregasi lintas sesi: total poin, jumlah sesi, jumlah menang. Rank 1–3 pakai ikon gold/silver/bronze.
+- **Timestamps** — tiap ronde otomatis tercatat dengan timestamp lengkap.
+- **Offline-first** — data lokal di SQLite, arsitektur repository yang siap migrasi ke backend (Firebase/Supabase).
+- **Tema & bahasa** — mode System/Light/Dark + bahasa Indonesia/English (copy khas tongkrongan 😄).
 
-   ```bash
-   npm install
-   ```
+## Tech stack
 
-2. Start the app
+| Layer | Pilihan |
+|---|---|
+| Framework | Expo SDK 57 (React Native, TypeScript) |
+| Navigation | Expo Router (file-based) |
+| Styling | NativeWind (Tailwind untuk React Native) |
+| State | Zustand (dengan persist ke expo-sqlite kv-store) |
+| Database | expo-sqlite (schema versioned migration) |
+| Icons | @expo/vector-icons (Ionicons) |
 
-   ```bash
-   npx expo start
-   ```
+## Struktur proyek
 
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
-```bash
-npm run reset-project
+```
+src/
+├── app/                       # Expo Router screens
+│   ├── _layout.tsx            # Stack + sistem tema
+│   ├── index.tsx              # Home: daftar geng
+│   ├── settings.tsx           # Setelan tema + bahasa
+│   ├── circle/[id].tsx        # Detail geng: pemain, klasemen musim, riwayat
+│   ├── session/[id].tsx       # Sesi live: ranking real-time
+│   ├── session/[id]/add-round.tsx        # Modal input skor ronde
+│   └── session/[id]/player/[playerId].tsx # Detail riwayat per pemain
+├── db/                        # Lapisan data (SQLite)
+│   ├── database.ts            # open + migrasi ber-version
+│   ├── circleRepo / playerRepo / sessionRepo / leaderboardRepo
+├── store/
+│   ├── sessionStore.ts        # Zustand: total & ranking live
+│   └── settingsStore.ts       # Persist tema + bahasa
+├── lib/
+│   ├── score.ts               # logika murni: validasi ±5, kumulatif, ranking
+│   ├── format.ts              # format timestamp (Intl)
+│   └── i18n.ts                # EN/ID dictionary
+└── components/                # PlayerCard, StepperRow, EmptyState
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Menjalankan
 
-### Other setup steps
+```bash
+npm install
+npm run start        # Expo dev server
+npm run android      # jalankan di emulator / perangkat (Expo Go)
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+Script lain:
 
-## Learn more
+```bash
+npm test             # node:test untuk logika skor (validasi ±5, ranking, kumulatif)
+npm run typecheck    # tsc --noEmit
+npm run lint         # expo lint (ESLint)
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+## Aturan skor
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+- Tiap ronde: satu skor per pemain (kelipatan 5, boleh negatif, rentang −1000…1000).
+- Sesuai skema `scores`, total kumulatif dihitung transaksional per ronde (kolom `cumulative_total`).
+- Pemenang sesi = total tertinggi saat sesi diakhiri. Seri di puncak = sama-sama menang.
+- Klasemen musim menghitung: total poin, sesi dimainkan, dan jumlah menang per pemain.
 
-## Join the community
+## Skema database
 
-Join our community of developers creating universal apps.
+```sql
+circles (id, name, created_at)
+players (id, name, circle_id → circles, created_at)
+sessions (id, circle_id → circles, label, status active|completed, created_at, completed_at)
+rounds   (id, session_id → sessions, round_number, timestamp, UNIQUE(session_id, round_number))
+scores   (id, round_id → rounds, player_id → players, score_change, cumulative_total)
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+Semua operasi data lewat `src/db/*Repo` — ganti implementasi repo ke Firebase/Supabase nanti tanpa menyentuh UI.
+
+## Build APK
+
+APK rilis 64-bit (arm64-v8a) dibuild otomatis oleh GitHub Actions — lihat [.github/workflows/release.yml](.github/workflows/release.yml).
+
+1. Tag release: `git tag v1.0.0 && git push origin v1.0.0`
+2. Workflow build `assembleRelease` dan rilis APK ke **GitHub Releases**.
+
+Build manual:
+
+```bash
+npx expo prebuild -p android
+cd android && ./gradlew assembleRelease -PreactNativeArchitectures=arm64-v8a
+```
+
+## Lisensi
+
+MIT

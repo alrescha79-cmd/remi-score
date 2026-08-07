@@ -1,0 +1,205 @@
+import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useState } from 'react';
+import { Alert, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import EmptyState from '@/components/EmptyState';
+import { getCircle } from '@/db/circleRepo';
+import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
+import { addPlayer, deletePlayer, listPlayers } from '@/db/playerRepo';
+import type { Circle, Player, SeasonPlayerStat, SessionSummary } from '@/db/models';
+import { createSession, getActiveSession } from '@/db/sessionRepo';
+import { formatDateTime } from '@/lib/format';
+import { useT } from '@/lib/i18n';
+import { rankByScore } from '@/lib/score';
+
+const MEDALS = ['#f5a623', '#a6adb8', '#c2703a'];
+
+function RankBadge({ rank }: { rank: number }) {
+  if (rank >= 1 && rank <= 3) {
+    return <Ionicons name="medal" size={26} color={MEDALS[rank - 1]} />;
+  }
+  return (
+    <View className="h-7 w-7 items-center justify-center rounded-full bg-ink/10 dark:bg-ink-dark/10">
+      <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">{rank}</Text>
+    </View>
+  );
+}
+
+export default function CircleScreen() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const circleId = Number(id);
+  const router = useRouter();
+  const t = useT();
+
+  const [circle, setCircle] = useState<Circle | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [stats, setStats] = useState<SeasonPlayerStat[]>([]);
+  const [history, setHistory] = useState<SessionSummary[]>([]);
+  const [activeSessionId, setActiveSessionId] = useState<number | null>(null);
+  const [newPlayer, setNewPlayer] = useState('');
+
+  const refresh = useCallback(async () => {
+    setCircle(await getCircle(circleId));
+    setPlayers(await listPlayers(circleId));
+    setStats(await getSeasonStats(circleId));
+    setHistory(await getSessionSummaries(circleId));
+    setActiveSessionId((await getActiveSession(circleId))?.id ?? null);
+  }, [circleId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh])
+  );
+
+  const submitPlayer = async () => {
+    if (!newPlayer.trim()) return;
+    await addPlayer(circleId, newPlayer);
+    setNewPlayer('');
+    refresh();
+  };
+
+  const confirmDeletePlayer = (player: Player) => {
+    Alert.alert(t('circle.removePlayerTitle'), t('circle.removePlayerMsg', { name: player.name }), [
+      { text: t('common.cancel'), style: 'cancel' },
+      {
+        text: t('common.remove'),
+        style: 'destructive',
+        onPress: async () => {
+          await deletePlayer(player.id);
+          refresh();
+        },
+      },
+    ]);
+  };
+
+  const startOrResume = async () => {
+    let sessionId = activeSessionId;
+    if (sessionId == null) sessionId = await createSession(circleId);
+    router.push({ pathname: '/session/[id]', params: { id: String(sessionId) } });
+  };
+
+  const ranked = rankByScore(stats.map((s) => ({ item: s, score: s.total }))).filter(
+    (r) => r.item.sessionsPlayed > 0 || r.item.total !== 0
+  );
+
+  return (
+    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+      <View className="flex-row items-center px-4 pb-2 pt-4">
+        <TouchableOpacity onPress={() => router.back()} className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-surface-alt dark:bg-surface-dark-alt">
+          <Ionicons name="arrow-back" size={20} color="#6b7280" />
+        </TouchableOpacity>
+        <Text className="flex-1 text-xl font-extrabold text-ink dark:text-ink-dark" numberOfLines={1}>
+          {circle?.name ?? 'Circle'}
+        </Text>
+      </View>
+
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
+        <TouchableOpacity
+          onPress={startOrResume}
+          className="mt-2 flex-row items-center justify-center rounded-2xl bg-accent py-4"
+        >
+          <Ionicons name={activeSessionId != null ? 'play' : 'add-circle'} size={20} color="white" />
+          <Text className="ml-2 text-base font-bold text-white">
+            {activeSessionId != null ? t('circle.resume') : t('circle.start')}
+          </Text>
+        </TouchableOpacity>
+
+        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+          {t('circle.players')}
+        </Text>
+        <View className="flex-row items-center">
+          <TextInput
+            className="mr-2 flex-1 rounded-xl border border-ink/15 bg-surface-alt px-4 py-3 text-base text-ink dark:border-ink-dark/15 dark:bg-surface-dark-alt dark:text-ink-dark"
+            placeholder={t('circle.addPlayer')}
+            placeholderTextColor="#9aa3af"
+            value={newPlayer}
+            onChangeText={setNewPlayer}
+            returnKeyType="done"
+            onSubmitEditing={submitPlayer}
+          />
+          <TouchableOpacity onPress={submitPlayer} disabled={!newPlayer.trim()} className="h-12 w-12 items-center justify-center rounded-xl bg-accent disabled:opacity-40">
+            <Ionicons name="add" size={22} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {players.length > 0 ? (
+          <View className="mt-3 flex-row flex-wrap">
+            {players.map((p) => (
+              <TouchableOpacity
+                key={p.id}
+                onLongPress={() => confirmDeletePlayer(p)}
+                className="mb-2 mr-2 flex-row items-center rounded-full bg-accent-soft py-2 pl-4 pr-3 dark:bg-accent-dark-soft"
+              >
+                <Text className="text-sm font-semibold text-accent dark:text-white">{p.name}</Text>
+                <Ionicons name="close-circle" size={16} color="#9aa3af" className="ml-1" />
+              </TouchableOpacity>
+            ))}
+          </View>
+        ) : (
+          <EmptyState icon="person-add-outline" message={t('circle.noPlayers')} />
+        )}
+
+        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+          {t('circle.leaderboard')}
+        </Text>
+        {ranked.length === 0 ? (
+          <EmptyState icon="trophy-outline" message={t('circle.noLeaderboard')} />
+        ) : (
+          ranked.map(({ item, rank, score }) => (
+            <View key={item.player.id} className="mb-2 flex-row items-center rounded-2xl bg-surface-alt px-4 py-3 dark:bg-surface-dark-alt">
+              <View className="mr-3 w-8 items-center">
+                <RankBadge rank={rank} />
+              </View>
+              <View className="flex-1">
+                <Text className="text-sm font-semibold text-ink dark:text-ink-dark">{item.player.name}</Text>
+                <Text className="text-xs text-ink-muted dark:text-ink-dark-muted">
+                  {t(item.wins === 1 ? 'circle.wins' : 'circle.winsMany', { count: item.wins })} ·{' '}
+                  {t(item.sessionsPlayed === 1 ? 'circle.sessionsShort' : 'circle.sessionsShortMany', {
+                    count: item.sessionsPlayed,
+                  })}
+                </Text>
+              </View>
+              <Text className="text-lg font-bold tabular-nums text-ink dark:text-ink-dark">{score}</Text>
+            </View>
+          ))
+        )}
+
+        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+          {t('circle.history')}
+        </Text>
+        {history.length === 0 ? (
+          <EmptyState icon="time-outline" message={t('circle.noHistory')} />
+        ) : (
+          history.map(({ session, players: sessionPlayers }) => {
+            const sorted = rankByScore(sessionPlayers.map((sp) => ({ item: sp, score: sp.total })));
+            const winners = sorted.filter((r) => r.rank === 1);
+            return (
+              <TouchableOpacity
+                key={session.id}
+                disabled={session.status === 'active'}
+                onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
+                className="mb-2 rounded-2xl bg-surface-alt px-4 py-3 dark:bg-surface-dark-alt"
+              >
+                <View className="flex-row items-center justify-between">
+                  <Text className="text-sm font-semibold text-ink dark:text-ink-dark">
+                    {formatDateTime(session.created_at)}
+                  </Text>
+                  <Text className={`text-xs font-bold ${session.status === 'completed' ? 'text-good' : 'text-accent'}`}>
+                    {session.status === 'completed' ? t('circle.finished') : t('circle.active')}
+                  </Text>
+                </View>
+                {session.status === 'completed' && (
+                  <Text className="mt-1 text-xs text-ink-muted dark:text-ink-dark-muted">
+                    {t('circle.winner', { names: winners.map((w) => w.item.player.name).join(', ') })}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            );
+          })
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
