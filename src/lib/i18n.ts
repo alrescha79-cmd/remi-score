@@ -14,9 +14,12 @@ const en: Record<string, string> = {
 
   'circle.start': 'Start new session',
   'circle.resume': 'Resume active session',
+  'circle.needPlayers': 'Add at least 2 players to start',
   'circle.players': 'Players',
   'circle.addPlayer': 'Add player name',
   'circle.noPlayers': 'No players yet. Add 2–7 to start scoring.',
+  'circle.renamePlayer': 'Rename player',
+  'circle.renamePlaceholder': 'Player name',
   'circle.leaderboard': 'Season leaderboard',
   'circle.noLeaderboard': 'No sessions yet. Leaderboard builds over time.',
   'circle.wins': '{count} win',
@@ -30,6 +33,8 @@ const en: Record<string, string> = {
   'circle.winner': 'Winner: {names}',
   'circle.deleteTitle': 'Delete circle',
   'circle.deleteMsg': 'Delete "{name}" and all its data?',
+  'circle.deleteSessionTitle': 'Delete session',
+  'circle.deleteSessionMsg': 'Delete this session and all its scores?',
   'circle.removePlayerTitle': 'Remove player',
   'circle.removePlayerMsg': 'Remove "{name}" from this circle?',
 
@@ -50,6 +55,8 @@ const en: Record<string, string> = {
   'round.invalid': 'All scores must be whole multiples of 5',
   'round.save': 'Save round',
   'round.saving': 'Saving…',
+  'round.playing': 'Playing',
+  'round.absent': 'Absent — score stays 0',
 
   'player.history': 'Round history',
   'player.total': 'Total',
@@ -57,6 +64,10 @@ const en: Record<string, string> = {
   'player.best': 'Best round',
   'player.worst': 'Worst round',
   'player.notFound': 'Player not found',
+  'player.sessions': 'Sessions played',
+  'player.sessionScores': 'Scores per session',
+  'player.noSessions': 'No sessions yet for this player.',
+  'player.seasonRank': 'Season rank',
 
   'settings.title': 'Settings',
   'settings.theme': 'Theme',
@@ -72,6 +83,7 @@ const en: Record<string, string> = {
   'common.cancel': 'Cancel',
   'common.delete': 'Delete',
   'common.remove': 'Remove',
+  'common.save': 'Save',
   'common.error': 'Error',
   'common.failedRound': 'Failed to save round',
 };
@@ -90,9 +102,12 @@ const id: Record<string, string> = {
 
   'circle.start': 'Gas main baru',
   'circle.resume': 'Lanjut sesi aktif',
+  'circle.needPlayers': 'Tambah minimal 2 pemain dulu',
   'circle.players': 'Pemain',
   'circle.addPlayer': 'Nama pemain baru',
   'circle.noPlayers': 'Belum ada pemain. Tambah 2–7 biar bisa mulai.',
+  'circle.renamePlayer': 'Ganti nama pemain',
+  'circle.renamePlaceholder': 'Nama pemain',
   'circle.leaderboard': 'Klasemen musim',
   'circle.noLeaderboard': 'Belum ada sesi, klasemen masih kosong. Gas main biar rame!',
   'circle.wins': '{count} menang',
@@ -106,6 +121,8 @@ const id: Record<string, string> = {
   'circle.winner': 'Juara: {names}',
   'circle.deleteTitle': 'Hapus geng',
   'circle.deleteMsg': 'Hapus "{name}" dan semua datanya?',
+  'circle.deleteSessionTitle': 'Hapus sesi',
+  'circle.deleteSessionMsg': 'Hapus sesi ini dan semua skornya?',
   'circle.removePlayerTitle': 'Hapus pemain',
   'circle.removePlayerMsg': 'Cabut "{name}" dari geng ini?',
 
@@ -126,6 +143,8 @@ const id: Record<string, string> = {
   'round.invalid': 'Semua skor wajib kelipatan 5',
   'round.save': 'Simpan ronde',
   'round.saving': 'Nyimpen…',
+  'round.playing': 'Ikut main',
+  'round.absent': 'Nggak ikut — skor tetap 0',
 
   'player.history': 'Riwayat ronde',
   'player.total': 'Total',
@@ -133,6 +152,10 @@ const id: Record<string, string> = {
   'player.best': 'Ronde terbaik',
   'player.worst': 'Ronde terburuk',
   'player.notFound': 'Pemain nggak ketemu',
+  'player.sessions': 'Sesi dimainkan',
+  'player.sessionScores': 'Skor per sesi',
+  'player.noSessions': 'Belum ada sesi buat pemain ini.',
+  'player.seasonRank': 'Peringkat musim',
 
   'settings.title': 'Setelan',
   'settings.theme': 'Tema',
@@ -148,6 +171,7 @@ const id: Record<string, string> = {
   'common.cancel': 'Batal',
   'common.delete': 'Hapus',
   'common.remove': 'Cabut',
+  'common.save': 'Simpan',
   'common.error': 'Eror',
   'common.failedRound': 'Gagal nyimpen ronde',
 };

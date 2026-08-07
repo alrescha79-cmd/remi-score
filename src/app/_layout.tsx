@@ -27,6 +27,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" />
         <Stack.Screen name="settings" options={{ presentation: 'modal' }} />
         <Stack.Screen name="circle/[id]" />
+        <Stack.Screen name="circle/[id]/player/[playerId]" />
         <Stack.Screen name="session/[id]" />
         <Stack.Screen name="session/[id]/add-round" options={{ presentation: 'modal' }} />
         <Stack.Screen name="session/[id]/player/[playerId]" />

@@ -50,6 +50,14 @@ const MIGRATIONS: string[] = [
   CREATE INDEX idx_scores_round ON scores(round_id);
   CREATE INDEX idx_rounds_session ON rounds(session_id);
   `,
+  `
+  CREATE TABLE session_players (
+    session_id INTEGER NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    player_id INTEGER NOT NULL REFERENCES players(id) ON DELETE CASCADE,
+    is_active INTEGER NOT NULL DEFAULT 1,
+    PRIMARY KEY (session_id, player_id)
+  );
+  `,
 ];
 
 let dbPromise: Promise<SQLiteDatabase> | null = null;

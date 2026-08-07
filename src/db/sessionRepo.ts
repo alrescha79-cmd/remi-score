@@ -1,5 +1,11 @@
 import { getDb } from './database';
+import { listPlayers } from './playerRepo';
 import type { Round, RoundEntry, ScoreRow, Session } from './models';
+
+export interface SessionPlayerFlag {
+  player_id: number;
+  is_active: number;
+}
 
 export async function createSession(circleId: number, label?: string): Promise<number> {
   const db = await getDb();
@@ -9,7 +15,45 @@ export async function createSession(circleId: number, label?: string): Promise<n
     label?.trim() || null,
     'active'
   );
-  return result.lastInsertRowId;
+  const sessionId = result.lastInsertRowId;
+
+  const players = await listPlayers(circleId);
+  for (const p of players) {
+    await db.runAsync(
+      'INSERT OR IGNORE INTO session_players (session_id, player_id) VALUES (?, ?)',
+      sessionId,
+      p.id
+    );
+  }
+  return sessionId;
+}
+
+export async function deleteSession(id: number): Promise<void> {
+  const db = await getDb();
+  await db.runAsync('DELETE FROM sessions WHERE id = ?', id);
+}
+
+export async function listSessionPlayers(sessionId: number): Promise<SessionPlayerFlag[]> {
+  const db = await getDb();
+  return db.getAllAsync<SessionPlayerFlag>(
+    'SELECT player_id, is_active FROM session_players WHERE session_id = ?',
+    sessionId
+  );
+}
+
+export async function setSessionPlayerActive(
+  sessionId: number,
+  playerId: number,
+  isActive: boolean
+): Promise<void> {
+  const db = await getDb();
+  await db.runAsync(
+    `INSERT INTO session_players (session_id, player_id, is_active) VALUES (?, ?, ?)
+     ON CONFLICT (session_id, player_id) DO UPDATE SET is_active = excluded.is_active`,
+    sessionId,
+    playerId,
+    isActive ? 1 : 0
+  );
 }
 
 export async function getSession(id: number): Promise<Session | null> {
@@ -59,6 +103,12 @@ export async function addRound(sessionId: number, entries: RoundEntry[]): Promis
     );
     const roundNumber = (row?.n ?? 0) + 1;
 
+    const flags = await db.getAllAsync<SessionPlayerFlag>(
+      'SELECT player_id, is_active FROM session_players WHERE session_id = ?',
+      sessionId
+    );
+    const active = new Map(flags.map((f) => [f.player_id, f.is_active === 1]));
+
     const prev = await db.getAllAsync<{ player_id: number; cumulative_total: number }>(
       `
       SELECT s.player_id, s.cumulative_total
@@ -80,12 +130,13 @@ export async function addRound(sessionId: number, entries: RoundEntry[]): Promis
 
     for (const entry of entries) {
       const base = prevByPlayer.get(entry.playerId) ?? 0;
+      const change = active.get(entry.playerId) === false ? 0 : entry.scoreChange;
       await db.runAsync(
         'INSERT INTO scores (round_id, player_id, score_change, cumulative_total) VALUES (?, ?, ?, ?)',
         roundId,
         entry.playerId,
-        entry.scoreChange,
-        base + entry.scoreChange
+        change,
+        base + change
       );
     }
   });
