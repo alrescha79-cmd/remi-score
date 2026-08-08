@@ -81,6 +81,7 @@ const en: Record<string, string> = {
   'settings.indonesia': 'Indonesia',
 
   'common.cancel': 'Cancel',
+  'common.ok': 'OK',
   'common.delete': 'Delete',
   'common.remove': 'Remove',
   'common.save': 'Save',
@@ -169,6 +170,7 @@ const id: Record<string, string> = {
   'settings.indonesia': 'Indonesia',
 
   'common.cancel': 'Batal',
+  'common.ok': 'Oke',
   'common.delete': 'Hapus',
   'common.remove': 'Cabut',
   'common.save': 'Simpan',

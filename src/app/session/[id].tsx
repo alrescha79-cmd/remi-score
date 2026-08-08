@@ -1,8 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
-import { ActivityIndicator, Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import PlayerCard from '@/components/PlayerCard';
 import { useT } from '@/lib/i18n';
@@ -14,6 +15,7 @@ export default function SessionScreen() {
   const router = useRouter();
   const t = useT();
   const { players, ranking, scores, totals, loading, error, load, finish } = useSessionStore();
+  const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   useEffect(() => {
     load(sessionId);
@@ -28,17 +30,17 @@ export default function SessionScreen() {
   }, [scores]);
 
   const confirmEnd = () => {
-    Alert.alert(t('session.endTitle'), t('session.endMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('session.endConfirm'),
-        style: 'destructive',
-        onPress: async () => {
-          await finish();
-          router.back();
-        },
+    setConfirm({
+      title: t('session.endTitle'),
+      message: t('session.endMsg'),
+      confirmText: t('session.endConfirm'),
+      destructive: true,
+      icon: 'flag-outline',
+      onConfirm: async () => {
+        await finish();
+        router.back();
       },
-    ]);
+    });
   };
 
   return (
@@ -108,6 +110,8 @@ export default function SessionScreen() {
           </TouchableOpacity>
         </ScrollView>
       )}
+
+      <ConfirmDialog options={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 }

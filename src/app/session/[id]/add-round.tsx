@@ -1,8 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { Alert, ScrollView, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
 import StepperRow from '@/components/StepperRow';
 import { useSessionStore } from '@/store/sessionStore';
 import { useT } from '@/lib/i18n';
@@ -16,6 +17,7 @@ export default function AddRoundScreen() {
   const { players, totals, scores, active, load, addRound, setActive } = useSessionStore();
   const [overrides, setOverrides] = useState<Record<number, number>>({});
   const [saving, setSaving] = useState(false);
+  const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   useEffect(() => {
     load(sessionId);
@@ -37,8 +39,16 @@ export default function AddRoundScreen() {
       await addRound(players.map((p) => ({ playerId: p.id, scoreChange: entries[p.id] })));
       router.back();
     } catch (e) {
-      Alert.alert(t('common.error'), e instanceof Error ? e.message : t('common.failedRound'));
       setSaving(false);
+      setConfirm({
+        title: t('common.error'),
+        message: e instanceof Error ? e.message : t('common.failedRound'),
+        confirmText: t('common.ok'),
+        hideCancel: true,
+        icon: 'alert-circle-outline',
+        iconTone: 'bad',
+        onConfirm: () => {},
+      });
     }
   };
 
@@ -110,6 +120,8 @@ export default function AddRoundScreen() {
           <Text className="text-base font-bold text-white">{saving ? t('round.saving') : t('round.save')}</Text>
         </TouchableOpacity>
       </View>
+
+      <ConfirmDialog options={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 }

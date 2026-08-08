@@ -1,17 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import { createCircle, deleteCircle, listCircles } from '@/db/circleRepo';
 import type { CircleWithStats } from '@/db/models';
@@ -24,6 +16,7 @@ export default function HomeScreen() {
   const [circles, setCircles] = useState<CircleWithStats[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [name, setName] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   const refresh = useCallback(async () => {
     setCircles(await listCircles());
@@ -44,17 +37,17 @@ export default function HomeScreen() {
   };
 
   const confirmDelete = (circle: CircleWithStats) => {
-    Alert.alert(t('circle.deleteTitle'), t('circle.deleteMsg', { name: circle.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          await deleteCircle(circle.id);
-          refresh();
-        },
+    setConfirm({
+      title: t('circle.deleteTitle'),
+      message: t('circle.deleteMsg', { name: circle.name }),
+      confirmText: t('common.delete'),
+      destructive: true,
+      icon: 'trash-outline',
+      onConfirm: async () => {
+        await deleteCircle(circle.id);
+        refresh();
       },
-    ]);
+    });
   };
 
   return (
@@ -147,6 +140,8 @@ export default function HomeScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ConfirmDialog options={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 }

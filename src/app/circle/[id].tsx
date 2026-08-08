@@ -1,17 +1,9 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useState } from 'react';
-import {
-  Alert,
-  Modal,
-  Pressable,
-  ScrollView,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
 import { getCircle } from '@/db/circleRepo';
 import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
@@ -49,6 +41,7 @@ export default function CircleScreen() {
   const [newPlayer, setNewPlayer] = useState('');
   const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [nameDraft, setNameDraft] = useState('');
+  const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   const refresh = useCallback(async () => {
     setCircle(await getCircle(circleId));
@@ -85,17 +78,17 @@ export default function CircleScreen() {
 
   const confirmDeletePlayer = (player: Player) => {
     setEditingPlayer(null);
-    Alert.alert(t('circle.removePlayerTitle'), t('circle.removePlayerMsg', { name: player.name }), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.remove'),
-        style: 'destructive',
-        onPress: async () => {
-          await deletePlayer(player.id);
-          refresh();
-        },
+    setConfirm({
+      title: t('circle.removePlayerTitle'),
+      message: t('circle.removePlayerMsg', { name: player.name }),
+      confirmText: t('common.remove'),
+      destructive: true,
+      icon: 'person-remove-outline',
+      onConfirm: async () => {
+        await deletePlayer(player.id);
+        refresh();
       },
-    ]);
+    });
   };
 
   const startOrResume = async () => {
@@ -106,17 +99,17 @@ export default function CircleScreen() {
   };
 
   const confirmDeleteSession = (sessionId: number) => {
-    Alert.alert(t('circle.deleteSessionTitle'), t('circle.deleteSessionMsg'), [
-      { text: t('common.cancel'), style: 'cancel' },
-      {
-        text: t('common.delete'),
-        style: 'destructive',
-        onPress: async () => {
-          await deleteSession(sessionId);
-          refresh();
-        },
+    setConfirm({
+      title: t('circle.deleteSessionTitle'),
+      message: t('circle.deleteSessionMsg'),
+      confirmText: t('common.delete'),
+      destructive: true,
+      icon: 'trash-outline',
+      onConfirm: async () => {
+        await deleteSession(sessionId);
+        refresh();
       },
-    ]);
+    });
   };
 
   const ranked = rankByScore(stats.map((s) => ({ item: s, score: s.total }))).filter(
@@ -302,6 +295,8 @@ export default function CircleScreen() {
           </Pressable>
         </Pressable>
       </Modal>
+
+      <ConfirmDialog options={confirm} onDismiss={() => setConfirm(null)} />
     </SafeAreaView>
   );
 }

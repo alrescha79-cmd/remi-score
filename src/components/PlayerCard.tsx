@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useT } from '../lib/i18n';
 import { formatSignedScore } from '../lib/score';
