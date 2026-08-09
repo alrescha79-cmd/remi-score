@@ -4,6 +4,7 @@ import { Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useT } from '@/lib/i18n';
 import { useSettingsStore, type Lang, type ThemePref } from '@/store/settingsStore';
+import SheetSyncSection from '@/components/SheetSyncSection';
 
 const THEMES: { value: ThemePref; icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { value: 'system', icon: 'phone-portrait-outline', key: 'settings.system' },
@@ -81,6 +82,8 @@ export default function SettingsScreen() {
             })}
           </View>
         </View>
+
+        <SheetSyncSection />
       </View>
     </SafeAreaView>
   );
