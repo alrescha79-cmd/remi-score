@@ -5,6 +5,7 @@ import { Modal, Pressable, ScrollView, Text, TextInput, TouchableOpacity, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
 import EmptyState from '@/components/EmptyState';
+import ScreenHeader from '@/components/ScreenHeader';
 import { getCircle } from '@/db/circleRepo';
 import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
 import { addPlayer, deletePlayer, listPlayers, renamePlayer } from '@/db/playerRepo';
@@ -14,15 +15,15 @@ import { formatDateTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { rankByScore } from '@/lib/score';
 
-const MEDALS = ['#f5a623', '#a6adb8', '#c2703a'];
+const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
 function RankBadge({ rank }: { rank: number }) {
   if (rank >= 1 && rank <= 3) {
     return <Ionicons name="medal" size={26} color={MEDALS[rank - 1]} />;
   }
   return (
-    <View className="h-7 w-7 items-center justify-center rounded-full bg-ink/10 dark:bg-ink-dark/10">
-      <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">{rank}</Text>
+    <View className="h-8 w-8 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
+      <Text className="text-sm font-bold tabular-nums text-ink-muted dark:text-ink-dark-muted">{rank}</Text>
     </View>
   );
 }
@@ -119,73 +120,79 @@ export default function CircleScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
-      <View className="flex-row items-center px-4 pb-2 pt-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-surface-alt dark:bg-surface-dark-alt">
-          <Ionicons name="arrow-back" size={20} color="#6b7280" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-xl font-extrabold text-ink dark:text-ink-dark" numberOfLines={1}>
-          {circle?.name ?? 'Circle'}
-        </Text>
-      </View>
+      <ScreenHeader title={circle?.name ?? 'Circle'} onBack={() => router.back()} />
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
         <TouchableOpacity
           onPress={startOrResume}
           disabled={!canStart}
-          className="mt-2 flex-row items-center justify-center rounded-2xl bg-accent py-4 disabled:bg-ink/15 dark:disabled:bg-ink-dark/15"
+          accessibilityRole="button"
+          className="mt-1 flex-row items-center justify-center rounded-full bg-accent py-4 disabled:bg-ink/10 dark:bg-accent-dark dark:disabled:bg-ink-dark/10"
         >
           <Ionicons
             name={activeSessionId != null ? 'play' : 'add-circle'}
             size={20}
-            color={canStart || activeSessionId != null ? 'white' : '#9aa3af'}
+            color={canStart || activeSessionId != null ? '#ffffff' : '#5d6471'}
           />
-          <Text className={`ml-2 text-base font-bold ${canStart || activeSessionId != null ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
+          <Text
+            className={`ml-2 text-base font-extrabold ${
+              canStart || activeSessionId != null ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'
+            }`}
+          >
             {activeSessionId != null ? t('circle.resume') : t('circle.start')}
           </Text>
         </TouchableOpacity>
         {!canStart && activeSessionId == null && (
-          <Text className="mt-1.5 text-center text-xs text-ink-muted dark:text-ink-dark-muted">
+          <Text className="mt-2 text-center text-xs text-ink-muted dark:text-ink-dark-muted">
             {t('circle.needPlayers')}
           </Text>
         )}
 
-        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
           {t('circle.players')}
         </Text>
         <View className="flex-row items-center">
           <TextInput
-            className="mr-2 flex-1 rounded-xl border border-ink/15 bg-surface-alt px-4 py-3 text-base text-ink dark:border-ink-dark/15 dark:bg-surface-dark-alt dark:text-ink-dark"
+            className="mr-2 flex-1 h-12 rounded-xl bg-surface-fill px-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
             placeholder={t('circle.addPlayer')}
-            placeholderTextColor="#9aa3af"
             value={newPlayer}
             onChangeText={setNewPlayer}
             returnKeyType="done"
             onSubmitEditing={submitPlayer}
           />
-          <TouchableOpacity onPress={submitPlayer} disabled={!newPlayer.trim()} className="h-12 w-12 items-center justify-center rounded-xl bg-accent disabled:opacity-40">
-            <Ionicons name="add" size={22} color="white" />
+          <TouchableOpacity
+            onPress={submitPlayer}
+            disabled={!newPlayer.trim()}
+            accessibilityRole="button"
+            accessibilityLabel={t('circle.addPlayer')}
+            className="h-12 w-12 items-center justify-center rounded-full bg-accent disabled:opacity-40 dark:bg-accent-dark"
+          >
+            <Ionicons name="add" size={22} color="#ffffff" />
           </TouchableOpacity>
         </View>
 
         {players.length > 0 ? (
-          <View className="mt-3 flex-row flex-wrap">
+          <View className="mt-4 flex-row flex-wrap">
             {players.map((p) => (
               <TouchableOpacity
                 key={p.id}
                 onPress={() => openPlayerModal(p)}
                 onLongPress={() => confirmDeletePlayer(p)}
+                accessibilityRole="button"
                 className="mb-2 mr-2 flex-row items-center rounded-full bg-accent-soft py-2 pl-4 pr-3 dark:bg-accent-dark-soft"
               >
-                <Text className="text-sm font-semibold text-accent dark:text-white">{p.name}</Text>
-                <Ionicons name="pencil" size={13} color="#9aa3af" className="ml-1.5" />
+                <Text className="text-sm font-bold text-accent-deep dark:text-accent-dark-deep">{p.name}</Text>
+                <Ionicons name="pencil" size={12} className="ml-2 text-ink-faint dark:text-ink-dark-faint" />
               </TouchableOpacity>
             ))}
           </View>
         ) : (
-          <EmptyState icon="person-add-outline" message={t('circle.noPlayers')} />
+          <View className="mt-4">
+            <EmptyState icon="person-add-outline" message={t('circle.noPlayers')} />
+          </View>
         )}
 
-        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
           {t('circle.leaderboard')}
         </Text>
         {ranked.length === 0 ? (
@@ -200,27 +207,30 @@ export default function CircleScreen() {
                   params: { id: String(circleId), playerId: String(item.player.id) },
                 })
               }
-              className="mb-2 flex-row items-center rounded-2xl bg-surface-alt px-4 py-3 active:opacity-80 dark:bg-surface-dark-alt"
+              accessibilityRole="button"
+              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 shadow-soft active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
             >
-              <View className="mr-3 w-8 items-center">
+              <View className="mr-3 w-9 items-center">
                 <RankBadge rank={rank} />
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-ink dark:text-ink-dark">{item.player.name}</Text>
-                <Text className="text-xs text-ink-muted dark:text-ink-dark-muted">
+              <View className="min-w-0 flex-1">
+                <Text className="text-sm font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
+                  {item.player.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">
                   {t(item.wins === 1 ? 'circle.wins' : 'circle.winsMany', { count: item.wins })} ·{' '}
                   {t(item.sessionsPlayed === 1 ? 'circle.sessionsShort' : 'circle.sessionsShortMany', {
                     count: item.sessionsPlayed,
                   })}
                 </Text>
               </View>
-              <Text className="text-lg font-bold tabular-nums text-ink dark:text-ink-dark">{score}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#9aa3af" className="ml-2" />
+              <Text className="text-lg font-extrabold tabular-nums text-ink dark:text-ink-dark">{score}</Text>
+              <Ionicons name="chevron-forward" size={16} className="ml-2 text-ink-faint dark:text-ink-dark-faint" />
             </TouchableOpacity>
           ))
         )}
 
-        <Text className="mb-2 mt-6 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
           {t('circle.history')}
         </Text>
         {history.length === 0 ? (
@@ -229,35 +239,45 @@ export default function CircleScreen() {
           history.map(({ session, players: sessionPlayers }) => {
             const sorted = rankByScore(sessionPlayers.map((sp) => ({ item: sp, score: sp.total })));
             const winners = sorted.filter((r) => r.rank === 1);
+            const active = session.status === 'active';
             return (
-              <TouchableOpacity
+              <View
                 key={session.id}
-                disabled={session.status === 'active'}
-                onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
-                className="mb-2 flex-row items-center rounded-2xl bg-surface-alt px-4 py-3 dark:bg-surface-dark-alt"
+                className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
               >
-                <View className="flex-1">
+                <TouchableOpacity
+                  disabled={active}
+                  onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
+                  accessibilityRole="button"
+                  className="min-w-0 flex-1"
+                >
                   <View className="flex-row items-center justify-between">
-                    <Text className="text-sm font-semibold text-ink dark:text-ink-dark">
+                    <Text className="text-sm font-bold text-ink dark:text-ink-dark">
                       {formatDateTime(session.created_at)}
                     </Text>
-                    <Text className={`text-xs font-bold ${session.status === 'completed' ? 'text-good' : 'text-accent'}`}>
-                      {session.status === 'completed' ? t('circle.finished') : t('circle.active')}
-                    </Text>
+                    <View className="ml-2 flex-row items-center">
+                      <View className={`mr-2 h-1.5 w-1.5 rounded-full ${active ? 'bg-accent dark:bg-accent-dark' : 'bg-good dark:bg-good-dark'}`} />
+                      <Text className={`text-xs font-bold ${active ? 'text-accent-deep dark:text-accent-dark-deep' : 'text-good dark:text-good-dark'}`}>
+                        {active ? t('circle.active') : t('circle.finished')}
+                      </Text>
+                    </View>
                   </View>
-                  {session.status === 'completed' && (
-                    <Text className="mt-1 text-xs text-ink-muted dark:text-ink-dark-muted">
+                  {!active && (
+                    <Text className="mt-1 text-xs text-ink-muted dark:text-ink-dark-muted" numberOfLines={1}>
                       {t('circle.winner', { names: winners.map((w) => w.item.player.name).join(', ') })}
                     </Text>
                   )}
-                </View>
+                </TouchableOpacity>
                 <TouchableOpacity
                   onPress={() => confirmDeleteSession(session.id)}
-                  className="ml-3 h-9 w-9 items-center justify-center rounded-full bg-bad/10"
+                  hitSlop={8}
+                  accessibilityRole="button"
+                  accessibilityLabel={t('circle.deleteSessionTitle')}
+                  className="ml-3 h-10 w-10 items-center justify-center rounded-full bg-bad/10 dark:bg-bad-dark/10"
                 >
-                  <Ionicons name="trash-outline" size={16} color="#dc2626" />
+                  <Ionicons name="trash-outline" size={16} className="text-bad dark:text-bad-dark" />
                 </TouchableOpacity>
-              </TouchableOpacity>
+              </View>
             );
           })
         )}
@@ -265,12 +285,14 @@ export default function CircleScreen() {
 
       <Modal transparent visible={editingPlayer != null} animationType="fade" onRequestClose={() => setEditingPlayer(null)}>
         <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={() => setEditingPlayer(null)}>
-          <Pressable className="w-full rounded-3xl bg-surface p-6 dark:bg-surface-dark-alt" onPress={() => {}}>
-            <Text className="mb-4 text-lg font-bold text-ink dark:text-ink-dark">{t('circle.renamePlayer')}</Text>
+          <Pressable
+            className="w-full rounded-[28px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt"
+            onPress={() => {}}
+          >
+            <Text className="mb-4 text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('circle.renamePlayer')}</Text>
             <TextInput
-              className="mb-4 rounded-xl border border-ink/15 bg-surface-alt px-4 py-3 text-base text-ink dark:border-ink-dark/15 dark:bg-surface-dark dark:text-ink-dark"
+              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
               placeholder={t('circle.renamePlaceholder')}
-              placeholderTextColor="#9aa3af"
               value={nameDraft}
               onChangeText={setNameDraft}
               autoFocus
@@ -280,16 +302,18 @@ export default function CircleScreen() {
             <TouchableOpacity
               onPress={savePlayerName}
               disabled={!nameDraft.trim()}
-              className="items-center rounded-xl bg-accent py-3 disabled:opacity-40"
+              accessibilityRole="button"
+              className="items-center rounded-full bg-accent py-4 disabled:opacity-40 dark:bg-accent-dark"
             >
-              <Text className="text-base font-bold text-white">{t('common.save')}</Text>
+              <Text className="text-base font-extrabold text-white">{t('common.save')}</Text>
             </TouchableOpacity>
             {editingPlayer && (
               <TouchableOpacity
                 onPress={() => confirmDeletePlayer(editingPlayer)}
-                className="mt-3 items-center rounded-xl border border-bad/40 py-3"
+                accessibilityRole="button"
+                className="mt-3 items-center rounded-full border border-bad/40 py-4 dark:border-bad-dark/40"
               >
-                <Text className="text-base font-bold text-bad">{t('common.delete')}</Text>
+                <Text className="text-base font-extrabold text-bad dark:text-bad-dark">{t('common.delete')}</Text>
               </TouchableOpacity>
             )}
           </Pressable>

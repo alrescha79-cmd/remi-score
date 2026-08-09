@@ -1,25 +1,21 @@
 import { useState } from 'react';
 import { Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { SCORE_MAX, SCORE_MIN, SCORE_STEP, formatSignedScore, validateScore } from '../lib/score';
+import { SCORE_MAX, SCORE_MIN, SCORE_STEP, validateScore } from '../lib/score';
 
 interface Props {
-  name: string;
   value: number;
   onChange: (value: number) => void;
-  projectedTotal: number;
 }
 
 function clamp(v: number): number {
   return Math.min(SCORE_MAX, Math.max(SCORE_MIN, v));
 }
 
-export default function StepperRow({ name, value, onChange, projectedTotal }: Props) {
+export default function StepperRow({ value, onChange }: Props) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState('');
 
   const valid = validateScore(value);
-  const totalColor =
-    projectedTotal > 0 ? 'text-good' : projectedTotal < 0 ? 'text-bad' : 'text-ink-muted dark:text-ink-dark-muted';
 
   const apply = (v: number) => {
     onChange(v);
@@ -28,7 +24,7 @@ export default function StepperRow({ name, value, onChange, projectedTotal }: Pr
 
   const commitDraft = () => {
     if (editing) {
-      if (draft !== '') {
+      if (draft !== '' && draft !== '-') {
         const n = Number(draft);
         if (Number.isInteger(n)) apply(clamp(n));
       }
@@ -38,48 +34,67 @@ export default function StepperRow({ name, value, onChange, projectedTotal }: Pr
   };
 
   return (
-    <View className="flex-row items-center rounded-2xl bg-surface-alt px-3 py-3 dark:bg-surface-dark-alt">
-      <View className="flex-1">
-        <Text className="text-sm font-semibold text-ink dark:text-ink-dark">{name}</Text>
-        <Text className={`text-xs tabular-nums ${totalColor}`}>= {formatSignedScore(projectedTotal)}</Text>
+    <View className="flex-row items-center justify-between gap-1 pt-1">
+      {/* Minus Buttons (Red) */}
+      <TouchableOpacity
+        onPress={() => apply(clamp(value - 25))}
+        accessibilityRole="button"
+        accessibilityLabel="Kurang 25"
+        className="h-11 flex-1 items-center justify-center rounded-lg border border-bad/25 bg-bad/10 active:bg-bad/20 dark:border-bad-dark/30 dark:bg-bad-dark/15 dark:active:bg-bad-dark/30"
+      >
+        <Text className="text-sm font-extrabold text-bad dark:text-bad-dark">−25</Text>
+      </TouchableOpacity>
+
+      <TouchableOpacity
+        onPress={() => apply(clamp(value - 5))}
+        accessibilityRole="button"
+        accessibilityLabel="Kurang 5"
+        className="h-11 flex-1 items-center justify-center rounded-lg border border-bad/25 bg-bad/10 active:bg-bad/20 dark:border-bad-dark/30 dark:bg-bad-dark/15 dark:active:bg-bad-dark/30"
+      >
+        <Text className="text-sm font-extrabold text-bad dark:text-bad-dark">−5</Text>
+      </TouchableOpacity>
+
+      {/* Score Input */}
+      <View className="mx-0.5 h-11 w-16 items-center justify-center">
+        <TextInput
+          className={`h-11 w-full rounded-lg p-0 text-center text-base font-extrabold tabular-nums ${
+            valid
+              ? 'border border-rule bg-surface-fill text-ink placeholder:text-ink-faint dark:border-rule-dark dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint'
+              : 'border-2 border-bad bg-bad/15 text-bad dark:border-bad-dark dark:bg-bad-dark/20 dark:text-bad-dark'
+          }`}
+          value={editing ? draft : String(value)}
+          keyboardType="numbers-and-punctuation"
+          placeholder="0"
+          onChangeText={setDraft}
+          returnKeyType="done"
+          onFocus={() => {
+            setEditing(true);
+            setDraft(String(value));
+          }}
+          onBlur={commitDraft}
+          onSubmitEditing={commitDraft}
+        />
       </View>
 
-      <StepperButton label="−25" onPress={() => apply(clamp(value - 25))} />
-      <StepperButton label="−5" onPress={() => apply(clamp(value - 5))} />
+      {/* Plus Buttons (Green) */}
+      <TouchableOpacity
+        onPress={() => apply(clamp(value + 5))}
+        accessibilityRole="button"
+        accessibilityLabel="Tambah 5"
+        className="h-11 flex-1 items-center justify-center rounded-lg border border-good/25 bg-good/10 active:bg-good/20 dark:border-good-dark/30 dark:bg-good-dark/15 dark:active:bg-good-dark/30"
+      >
+        <Text className="text-sm font-extrabold text-good dark:text-good-dark">+5</Text>
+      </TouchableOpacity>
 
-      <TextInput
-        className={`mx-1 h-12 w-20 rounded-xl border text-center text-lg font-bold tabular-nums ${
-          valid
-            ? 'border-ink/15 bg-white text-ink dark:border-ink-dark/15 dark:bg-surface-dark dark:text-ink-dark'
-            : 'border-bad bg-bad/10 text-bad'
-        }`}
-        value={editing ? draft : String(value)}
-        keyboardType="numbers-and-punctuation"
-        placeholder="0"
-        placeholderTextColor="#9aa3af"
-        onChangeText={setDraft}
-        onFocus={() => {
-          setEditing(true);
-          setDraft(String(value));
-        }}
-        onBlur={commitDraft}
-        onSubmitEditing={commitDraft}
-      />
-
-      <StepperButton label="+5" onPress={() => apply(clamp(value + 5))} />
-      <StepperButton label="+25" onPress={() => apply(clamp(value + 25))} />
+      <TouchableOpacity
+        onPress={() => apply(clamp(value + 25))}
+        accessibilityRole="button"
+        accessibilityLabel="Tambah 25"
+        className="h-11 flex-1 items-center justify-center rounded-lg border border-good/25 bg-good/10 active:bg-good/20 dark:border-good-dark/30 dark:bg-good-dark/15 dark:active:bg-good-dark/30"
+      >
+        <Text className="text-sm font-extrabold text-good dark:text-good-dark">+25</Text>
+      </TouchableOpacity>
     </View>
-  );
-}
-
-function StepperButton({ label, onPress }: { label: string; onPress: () => void }) {
-  return (
-    <TouchableOpacity
-      onPress={onPress}
-      className="ml-1 h-11 min-w-[52px] items-center justify-center rounded-xl bg-accent-soft px-2 dark:bg-accent-dark-soft"
-    >
-      <Text className="text-base font-bold text-accent dark:text-white">{label}</Text>
-    </TouchableOpacity>
   );
 }
 

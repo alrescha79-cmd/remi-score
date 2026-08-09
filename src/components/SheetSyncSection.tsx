@@ -113,28 +113,28 @@ export default function SheetSyncSection() {
   const busyTest = busy === 'test';
 
   return (
-    <View className="mb-6 mt-4">
-      <Text className="text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">{t('settings.sheets')}</Text>
-      <Text className="mb-2 text-xs text-ink-muted/70 dark:text-ink-dark-muted/70">{t('settings.sheetsHint')}</Text>
+    <View className="mb-6 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
+      <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('settings.sheets')}</Text>
+      <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('settings.sheetsHint')}</Text>
 
-      <View className="flex-row items-center rounded-2xl bg-surface-alt dark:bg-surface-dark-alt">
+      <View className="flex-row items-center rounded-xl bg-surface-fill dark:bg-surface-dark-fill">
         <TextInput
           value={sheetWebhookUrl}
           onChangeText={(v) => setSheetWebhookUrl(v.trim())}
           placeholder={t('settings.sheetsUrlPlaceholder')}
-          placeholderTextColor="#9aa3af"
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          className="flex-1 px-4 py-3 text-sm text-ink dark:text-ink-dark"
+          className="flex-1 px-4 py-4 text-sm text-ink placeholder:text-ink-faint dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
         />
         {sheetWebhookUrl.length > 0 && (
           <TouchableOpacity
             onPress={() => setSheetWebhookUrl('')}
             accessibilityLabel={t('sync.clearUrl')}
-            className="px-4 py-3"
+            hitSlop={8}
+            className="px-4 py-4"
           >
-            <Ionicons name="close-circle" size={18} color="#9aa3af" />
+            <Ionicons name="close-circle" size={18} className="text-ink-faint dark:text-ink-dark-faint" />
           </TouchableOpacity>
         )}
       </View>
@@ -142,20 +142,21 @@ export default function SheetSyncSection() {
       {sheetWebhookUrl !== '' && (
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-center gap-1">
-            <Ionicons name="checkmark-circle" size={13} color="#16a34a" />
-            <Text className="text-xs text-good">{t('sync.urlSaved')}</Text>
+            <Ionicons name="checkmark-circle" size={13} className="text-good dark:text-good-dark" />
+            <Text className="text-xs text-good dark:text-good-dark">{t('sync.urlSaved')}</Text>
           </View>
           <TouchableOpacity
             onPress={handleTest}
             disabled={busy != null}
+            accessibilityRole="button"
             className="flex-row items-center gap-1"
           >
             {busyTest ? (
-              <ActivityIndicator size="small" color="#6d5dfc" />
+              <ActivityIndicator size="small" color="#0071e3" />
             ) : (
-              <Ionicons name="link-outline" size={13} color="#6d5dfc" />
+              <Ionicons name="link-outline" size={13} className="text-accent dark:text-accent-dark" />
             )}
-            <Text className="text-xs font-semibold text-accent">
+            <Text className="text-xs font-bold text-accent-deep dark:text-accent-dark-deep">
               {busyTest ? t('sync.testing') : t('sync.test')}
             </Text>
           </TouchableOpacity>
@@ -166,16 +167,17 @@ export default function SheetSyncSection() {
         <TouchableOpacity
           onPress={handleExport}
           disabled={busy != null}
-          className={`flex-1 flex-row items-center justify-center gap-1.5 rounded-xl py-3 ${
-            busy ? 'opacity-60' : ''
-          } bg-accent`}
+          accessibilityRole="button"
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-full py-3 ${
+            busy ? 'opacity-60' : 'opacity-100'
+          } bg-accent dark:bg-accent-dark`}
         >
           {busyExport ? (
             <ActivityIndicator size="small" color="#ffffff" />
           ) : (
             <Ionicons name="cloud-upload-outline" size={16} color="#ffffff" />
           )}
-          <Text className="text-sm font-bold text-white">
+          <Text className="text-sm font-extrabold text-white">
             {busyExport ? t('sync.exporting') : t('sync.export')}
           </Text>
         </TouchableOpacity>
@@ -183,26 +185,27 @@ export default function SheetSyncSection() {
         <TouchableOpacity
           onPress={handleImport}
           disabled={busy != null}
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-xl border border-accent/40 py-3"
+          accessibilityRole="button"
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-full border border-accent/40 py-3 dark:border-accent-dark/40"
         >
           {busyImport ? (
-            <ActivityIndicator size="small" color="#6d5dfc" />
+            <ActivityIndicator size="small" color="#0071e3" />
           ) : (
-            <Ionicons name="cloud-download-outline" size={16} color="#6d5dfc" />
+            <Ionicons name="cloud-download-outline" size={16} className="text-accent dark:text-accent-dark" />
           )}
-          <Text className="text-sm font-bold text-accent">
+          <Text className="text-sm font-extrabold text-accent-deep dark:text-accent-dark-deep">
             {busyImport ? t('sync.importing') : t('sync.import')}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {error != null && <Text className="mt-2 text-xs text-bad">{error}</Text>}
+      {error != null && <Text className="mt-2 text-xs text-bad dark:text-bad-dark">{error}</Text>}
       {done && error == null && (
-        <Text className="mt-2 text-xs text-good">
+        <Text className="mt-2 text-xs text-good dark:text-good-dark">
           {doneAction === 'test' ? t('sync.testOk') : t('sync.success')}
         </Text>
       )}
-      <Text className="mt-2 text-xs text-ink-muted/70 dark:text-ink-dark-muted/70">
+      <Text className="mt-2 text-xs text-ink-muted dark:text-ink-dark-muted">
         {lastSyncAt ? t('sync.lastSync', { date: formatDateTime(lastSyncAt) }) : t('sync.never')}
       </Text>
 

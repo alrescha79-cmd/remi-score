@@ -8,9 +8,11 @@ interface Props {
 
 export default function EmptyState({ icon = 'apps-outline', message }: Props) {
   return (
-    <View className="items-center justify-center rounded-2xl border border-dashed border-ink/15 py-10 dark:border-ink-dark/15">
-      <Ionicons name={icon} size={36} color="#9aa3af" />
-      <Text className="mt-3 text-center text-sm text-ink-muted dark:text-ink-dark-muted">{message}</Text>
+    <View className="items-center justify-center px-6 py-12">
+      <View className="h-16 w-16 items-center justify-center rounded-full bg-accent-soft dark:bg-accent-dark-soft">
+        <Ionicons name={icon} size={28} className="text-accent dark:text-accent-dark" />
+      </View>
+      <Text className="mt-4 max-w-[280px] text-center text-sm text-ink-muted dark:text-ink-dark-muted">{message}</Text>
     </View>
   );
 }

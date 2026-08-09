@@ -65,26 +65,34 @@ export default function ConfirmDialog({ options, onDismiss }: Props) {
   return (
     <Modal transparent visible animationType="fade" onRequestClose={handleDismiss}>
       <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={handleDismiss}>
-        <Pressable className="w-full rounded-3xl bg-surface p-6 dark:bg-surface-dark-alt" onPress={() => {}}>
+        <Pressable
+          className="w-full rounded-[24px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+          onPress={() => {}}
+        >
           {icon != null && (
             <View
-              className={`mb-4 h-12 w-12 items-center justify-center rounded-2xl ${
-                iconTone === 'bad' ? 'bg-bad/10' : 'bg-accent-soft dark:bg-accent-dark-soft'
+              className={`mb-4 h-12 w-12 items-center justify-center rounded-full ${
+                iconTone === 'bad' ? 'bg-bad/10 dark:bg-bad-dark/10' : 'bg-accent-soft dark:bg-accent-dark-soft'
               }`}
             >
-              <Ionicons name={icon} size={24} color={iconTone === 'bad' ? '#dc2626' : '#6d5dfc'} />
+              <Ionicons
+                name={icon}
+                size={24}
+                className={iconTone === 'bad' ? 'text-bad dark:text-bad-dark' : 'text-accent dark:text-accent-dark'}
+              />
             </View>
           )}
 
-          <Text className="text-lg font-bold text-ink dark:text-ink-dark">{title}</Text>
-          <Text className="mt-1.5 text-sm leading-relaxed text-ink-muted dark:text-ink-dark-muted">{message}</Text>
+          <Text className="text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{title}</Text>
+          <Text className="mt-2 text-sm leading-relaxed text-ink-muted dark:text-ink-dark-muted">{message}</Text>
 
           <View className={`mt-6 flex-row ${hideCancel ? '' : 'gap-3'}`}>
             {!hideCancel && (
               <TouchableOpacity
                 onPress={handleDismiss}
                 disabled={busy}
-                className="flex-1 items-center justify-center rounded-xl border border-ink/15 py-3.5 dark:border-ink-dark/15"
+                accessibilityRole="button"
+                className="flex-1 items-center justify-center rounded-full border border-rule py-4 dark:border-rule-dark"
               >
                 <Text className="text-base font-bold text-ink-muted dark:text-ink-dark-muted">
                   {cancelText ?? t('common.cancel')}
@@ -94,14 +102,17 @@ export default function ConfirmDialog({ options, onDismiss }: Props) {
             <TouchableOpacity
               onPress={handleConfirm}
               disabled={busy}
-              className={`flex-1 items-center justify-center rounded-xl py-3.5 ${
-                destructive ? 'bg-bad' : 'bg-accent'
-              } ${busy ? 'opacity-60' : ''}`}
+              accessibilityRole="button"
+              className={`flex-1 items-center justify-center rounded-full py-4 ${
+                destructive
+                  ? 'bg-bad dark:bg-bad-dark'
+                  : 'bg-accent dark:bg-accent-dark'
+              } ${busy ? 'opacity-60' : 'opacity-100'}`}
             >
               {busy ? (
                 <ActivityIndicator size="small" color="#ffffff" />
               ) : (
-                <Text className="text-base font-bold text-white">{confirmText}</Text>
+                <Text className="text-base font-extrabold text-white">{confirmText}</Text>
               )}
             </TouchableOpacity>
           </View>
