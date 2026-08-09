@@ -11,16 +11,11 @@ import ConfirmDialog, { type ConfirmDialogOptions } from './ConfirmDialog';
 
 type Busy = 'export' | 'import' | 'test' | null;
 
-function errKey(e: unknown): string {
-  const msg = e instanceof Error ? e.message : 'sync.error';
-  if (msg.startsWith('sync.scriptError:')) return msg;
-  return msg.startsWith('sync.') || msg.startsWith('backup.') ? msg : 'sync.error';
-}
-
 function errText(e: unknown): string {
-  const key = errKey(e);
-  if (key.startsWith('sync.scriptError:')) return key.slice('sync.scriptError:'.length);
-  return t(key);
+  const msg = e instanceof Error ? e.message : 'sync.error';
+  if (msg.startsWith('sync.scriptError:')) return msg.slice('sync.scriptError:'.length);
+  if (msg.startsWith('sync.') || msg.startsWith('backup.')) return t(msg);
+  return t('sync.error');
 }
 
 export default function SheetSyncSection() {
@@ -64,7 +59,7 @@ export default function SheetSyncSection() {
     try {
       const raw = await fetchBackup(sheetWebhookUrl);
       const payload = parseBackup(raw);
-      await importAllData(payload, 'replace');
+      await importAllData(payload);
       setLastSyncAt(new Date().toISOString());
       setDoneAction('import');
       setDone(true);
@@ -126,7 +121,6 @@ export default function SheetSyncSection() {
         <TextInput
           value={sheetWebhookUrl}
           onChangeText={(v) => setSheetWebhookUrl(v.trim())}
-          onEndEditing={(e) => setSheetWebhookUrl(e.nativeEvent.text.trim())}
           placeholder={t('settings.sheetsUrlPlaceholder')}
           placeholderTextColor="#9aa3af"
           autoCapitalize="none"
