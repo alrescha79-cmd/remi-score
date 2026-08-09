@@ -11,6 +11,7 @@ Pencatatan skor Remi digital untuk geng tongkrongan. Gantiin notebook yang gampa
 - **Klasemen musim** — agregasi lintas sesi: total poin, jumlah sesi, jumlah menang. Rank 1–3 pakai ikon gold/silver/bronze.
 - **Timestamps** — tiap ronde otomatis tercatat dengan timestamp lengkap.
 - **Offline-first** — data lokal di SQLite, arsitektur repository yang siap migrasi ke backend (Firebase/Supabase).
+- **Backup Google Sheets** — export & import semua data (geng, pemain, sesi, skor) ke spreadsheet via Apps Script webhook. Tanpa OAuth di app.
 - **Tema & bahasa** — mode System/Light/Dark + bahasa Indonesia/English (copy khas tongkrongan 😄).
 
 ## Tech stack
@@ -31,7 +32,7 @@ src/
 ├── app/                       # Expo Router screens
 │   ├── _layout.tsx            # Stack + sistem tema
 │   ├── index.tsx              # Home: daftar geng
-│   ├── settings.tsx           # Setelan tema + bahasa
+│   ├── settings.tsx           # Setelan tema, bahasa, backup Google Sheets
 │   ├── circle/[id].tsx        # Detail geng: pemain, klasemen musim, riwayat
 │   ├── session/[id].tsx       # Sesi live: ranking real-time
 │   ├── session/[id]/add-round.tsx        # Modal input skor ronde
@@ -41,12 +42,15 @@ src/
 │   ├── circleRepo / playerRepo / sessionRepo / leaderboardRepo
 ├── store/
 │   ├── sessionStore.ts        # Zustand: total & ranking live
-│   └── settingsStore.ts       # Persist tema + bahasa
+│   └── settingsStore.ts       # Persist tema, bahasa, URL webhook sheets
 ├── lib/
 │   ├── score.ts               # logika murni: validasi ±5, kumulatif, ranking
 │   ├── format.ts              # format timestamp (Intl)
+│   ├── backupCore.ts          # serialize/parse backup (pure, ter-test)
+│   ├── backup.ts              # export/import semua tabel ke SQLite
+│   ├── sheetSync.ts           # HTTP client ke webhook Apps Script
 │   └── i18n.ts                # EN/ID dictionary
-└── components/                # PlayerCard, StepperRow, EmptyState
+└── components/                # PlayerCard, StepperRow, EmptyState, SheetSyncSection
 ```
 
 ## Menjalankan
@@ -60,7 +64,7 @@ npm run android      # jalankan di emulator / perangkat (Expo Go)
 Script lain:
 
 ```bash
-npm test             # node:test untuk logika skor (validasi ±5, ranking, kumulatif)
+npm test             # node:test untuk logika skor & round-trip backup
 npm run typecheck    # tsc --noEmit
 npm run lint         # expo lint (ESLint)
 ```
@@ -83,6 +87,39 @@ scores   (id, round_id → rounds, player_id → players, score_change, cumulati
 ```
 
 Semua operasi data lewat `src/db/*Repo` — ganti implementasi repo ke Firebase/Supabase nanti tanpa menyentuh UI.
+
+## Backup Google Sheets (Apps Script)
+
+Backup butuh satu kali setup: buat Google Apps Script, tempel kode di bawah, deploy sebagai **Web App** dengan akses **Anyone**, lalu tempel URL `…/exec` di **Settings → Google Sheets backup**.
+
+1. Buka [script.google.com](https://script.google.com) → **New project**.
+2. Salin isi [`apps-script/Code.gs`](apps-script/Code.gs) dan tempel ke editor. **Tidak perlu edit apa pun** — script otomatis memakai spreadsheet aktif/atau membuat `RemiScoreBackup` di Drive. (Opsional: mau paksa spreadsheet tertentu, isi `OVERRIDE_SPREADSHEET_ID` dengan ID-nya.)
+
+3. **Deploy → New deployment → Web app**:
+   - **Execute as**: *Me*
+   - **Who has access**: *Anyone*
+4. Saat muncul peringatan **"Google hasn't verified this app"** — normal, karena script belum diverifikasi Google. Karena ini script punyamu sendiri, aman lewati: klik **Advanced → Go to [nama project] (unsafe) → Allow**. Ini cukup sekali saja.
+5. **Test script dulu langsung dari editor** (sebelum nyobain di app):
+   - Pilih fungsi `test` di dropdown (gantikan `myFunction`), klik **Run** → izinkan authorization.
+   - Buka **View → Logs**. Kalau keluar:
+     ```
+     POST -> {"ok":true}
+     GET  -> {"test":true,"at":"..."}
+     ```
+     berarti script bekerja. Cek Drive: spreadsheet `RemiScoreBackup` dibuat, tab `RemiScoreBackup` terisi JSON.
+   - Kalau ada error, pesan lengkapnya muncul di Logs — perbaiki dulu di sini.
+6. Setelah script terbukti jalan: **Deploy → New deployment → Web app** (Execute as: *Me*, Who has access: *Anyone*) → **Authorize**.
+7. Salin **Web app URL**, tempel di Settings → Google Sheets backup.
+
+Backup ditulis ke spreadsheet kamu sebagai tab-tab tabel (headers + row, mudah dibaca):
+
+- `Circles` / `Players` / `Sessions` / `Rounds` / `Scores` / `SessionPlayers`
+- Tab `RemiScoreBackup` (disembunyikan) berisi JSON mentah — dipakai app saat import, jangan dihapus.
+
+Catatan:
+- **Export**: menimpa seluruh isi sheet dengan backup terbaru.
+- **Import**: mengganti **semua** data lokal dengan isi sheet (dikonfirmasi dulu). Last-write-wins, tidak ada merge cerdas.
+- Data dikirim tanpa autentikasi — jangan pakai webhook Apps Script untuk data yang butuh kerahasiaan ekstra.
 
 ## Build APK
 
