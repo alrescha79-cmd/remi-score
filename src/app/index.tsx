@@ -52,34 +52,33 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
-      <View className="flex-row items-center justify-between px-5 pb-2 pt-4">
-        <View className="flex-row items-center">
-          <View className="mr-3 h-10 w-10 items-center justify-center rounded-2xl bg-accent">
-            <Ionicons name="sparkles" size={20} color="white" />
-          </View>
-          <View>
-            <Text className="text-xl font-extrabold text-ink dark:text-ink-dark">RemiScore</Text>
-            <Text className="text-xs text-ink-muted dark:text-ink-dark-muted">{t('home.tagline')}</Text>
-          </View>
+      <View className="flex-row items-end justify-between px-5 pb-4 pt-6">
+        <View className="min-w-0">
+          <Text className="text-3xl font-extrabold tracking-tight text-ink dark:text-ink-dark">RemiScore</Text>
+          <Text className="mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('home.tagline')}</Text>
         </View>
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => router.push('/settings')}
-            className="mr-2 h-11 w-11 items-center justify-center rounded-2xl bg-surface-alt dark:bg-surface-dark-alt"
+            accessibilityRole="button"
+            accessibilityLabel="Settings"
+            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-rule-dark dark:bg-surface-dark-alt"
           >
-            <Ionicons name="settings-outline" size={20} color="#6b7280" />
+            <Ionicons name="settings-outline" size={20} className="text-ink-faint dark:text-ink-dark-faint" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
-            className="h-11 w-11 items-center justify-center rounded-2xl bg-accent"
+            accessibilityRole="button"
+            accessibilityLabel={t('home.newCircle')}
+            className="h-11 w-11 items-center justify-center rounded-full bg-accent dark:bg-accent-dark"
           >
-            <Ionicons name="add" size={24} color="white" />
+            <Ionicons name="add" size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
       </View>
 
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
-        <Text className="mb-2 mt-4 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
+        <Text className="mb-3 mt-2 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
           {t('home.circles')}
         </Text>
 
@@ -91,14 +90,17 @@ export default function HomeScreen() {
               key={circle.id}
               onPress={() => router.push({ pathname: '/circle/[id]', params: { id: String(circle.id) } })}
               onLongPress={() => confirmDelete(circle)}
-              className="mb-3 flex-row items-center rounded-2xl bg-surface-alt p-4 active:opacity-80 dark:bg-surface-dark-alt"
+              accessibilityRole="button"
+              className="mb-3 flex-row items-center rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
             >
-              <View className="mr-3 h-11 w-11 items-center justify-center rounded-xl bg-accent-soft dark:bg-accent-dark-soft">
-                <Ionicons name="people" size={20} color="#6d5dfc" />
+              <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
+                <Ionicons name="people" size={22} className="text-accent dark:text-accent-dark" />
               </View>
-              <View className="flex-1">
-                <Text className="text-base font-bold text-ink dark:text-ink-dark">{circle.name}</Text>
-                <Text className="text-xs text-ink-muted dark:text-ink-dark-muted">
+              <View className="min-w-0 flex-1">
+                <Text className="text-base font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
+                  {circle.name}
+                </Text>
+                <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted" numberOfLines={1}>
                   {t(circle.stats.sessionCount === 1 ? 'home.sessionsOne' : 'home.sessions', {
                     count: circle.stats.sessionCount,
                   })}
@@ -107,7 +109,9 @@ export default function HomeScreen() {
                     : ''}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={18} color="#9aa3af" />
+              <View className="ml-2 h-7 w-7 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
+                <Ionicons name="chevron-forward" size={16} className="text-ink-faint dark:text-ink-dark-faint" />
+              </View>
             </TouchableOpacity>
           ))
         )}
@@ -115,15 +119,18 @@ export default function HomeScreen() {
 
       <Modal transparent visible={modalVisible} animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={() => setModalVisible(false)}>
-          <Pressable className="w-full rounded-3xl bg-surface p-6 dark:bg-surface-dark-alt" onPress={() => {}}>
-            <Text className="mb-1 text-lg font-bold text-ink dark:text-ink-dark">{t('home.newCircle')}</Text>
-            <Text className="mb-4 text-sm text-ink-muted dark:text-ink-dark-muted">
-              {t('home.newCircleHint')}
-            </Text>
+          <Pressable
+            className="w-full rounded-[28px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt"
+            onPress={() => {}}
+          >
+            <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
+              <Ionicons name="people" size={22} className="text-accent dark:text-accent-dark" />
+            </View>
+            <Text className="text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('home.newCircle')}</Text>
+            <Text className="mb-4 mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('home.newCircleHint')}</Text>
             <TextInput
-              className="mb-4 rounded-xl border border-ink/15 bg-surface-alt px-4 py-3 text-base text-ink dark:border-ink-dark/15 dark:bg-surface-dark dark:text-ink-dark"
+              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
               placeholder={t('home.circleName')}
-              placeholderTextColor="#9aa3af"
               value={name}
               onChangeText={setName}
               autoFocus
@@ -133,9 +140,10 @@ export default function HomeScreen() {
             <TouchableOpacity
               onPress={submit}
               disabled={!name.trim()}
-              className="items-center rounded-xl bg-accent py-3 opacity-100 disabled:opacity-40"
+              accessibilityRole="button"
+              className="items-center rounded-full bg-accent py-4 opacity-100 disabled:opacity-40 dark:bg-accent-dark"
             >
-              <Text className="text-base font-bold text-white">{t('home.create')}</Text>
+              <Text className="text-base font-extrabold text-white">{t('home.create')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>

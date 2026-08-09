@@ -4,13 +4,14 @@ import { useCallback, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import EmptyState from '@/components/EmptyState';
+import ScreenHeader from '@/components/ScreenHeader';
 import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
 import type { SeasonPlayerStat, SessionSummary } from '@/db/models';
 import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { formatSignedScore, rankByScore } from '@/lib/score';
 
-const MEDALS = ['#f5a623', '#a6adb8', '#c2703a'];
+const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
 export default function SeasonPlayerScreen() {
   const { id, playerId } = useLocalSearchParams<{ id: string; playerId: string }>();
@@ -43,7 +44,7 @@ export default function SeasonPlayerScreen() {
   if (loading) {
     return (
       <SafeAreaView className="flex-1 items-center justify-center bg-surface dark:bg-surface-dark">
-        <ActivityIndicator size="large" color="#6d5dfc" />
+        <ActivityIndicator size="large" color="#0071e3" />
       </SafeAreaView>
     );
   }
@@ -71,19 +72,17 @@ export default function SeasonPlayerScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
-      <View className="flex-row items-center px-4 pb-2 pt-4">
-        <TouchableOpacity onPress={() => router.back()} className="mr-3 h-10 w-10 items-center justify-center rounded-full bg-surface-alt dark:bg-surface-dark-alt">
-          <Ionicons name="arrow-back" size={20} color="#6b7280" />
-        </TouchableOpacity>
-        <Text className="flex-1 text-xl font-extrabold text-ink dark:text-ink-dark" numberOfLines={1}>
-          {stat.player.name}
-        </Text>
-        <Text className="text-xl font-bold tabular-nums text-ink dark:text-ink-dark">
-          {formatSignedScore(stat.total)}
-        </Text>
-      </View>
+      <ScreenHeader
+        title={stat.player.name}
+        onBack={() => router.back()}
+        right={
+          <Text className="text-xl font-extrabold tabular-nums text-ink dark:text-ink-dark">
+            {formatSignedScore(stat.total)}
+          </Text>
+        }
+      />
 
-      <View className="flex-row justify-between px-5 pt-2">
+      <View className="flex-row gap-2 px-5 pt-1">
         <StatCard
           label={t('player.seasonRank')}
           value={`#${season?.rank ?? '-'}`}
@@ -94,10 +93,10 @@ export default function SeasonPlayerScreen() {
         <StatCard label={t('player.sessions')} value={String(stat.sessionsPlayed)} />
       </View>
 
-      <Text className="mb-2 mt-6 px-5 text-sm font-semibold text-ink-muted dark:text-ink-dark-muted">
+      <Text className="mb-3 mt-7 px-5 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
         {t('player.sessionScores')}
       </Text>
-      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 24 }}>
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
         {sessionRows.length === 0 ? (
           <EmptyState icon="calendar-outline" message={t('player.noSessions')} />
         ) : (
@@ -106,24 +105,23 @@ export default function SeasonPlayerScreen() {
               key={session.id}
               disabled={session.status === 'active'}
               onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
-              className="mb-2 flex-row items-center rounded-2xl bg-surface-alt px-4 py-3 active:opacity-80 dark:bg-surface-dark-alt"
+              accessibilityRole="button"
+              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
             >
               <View className="mr-3 w-8 items-center">
                 {rank >= 1 && rank <= 3 ? (
                   <Ionicons name="medal" size={22} color={MEDALS[rank - 1]} />
                 ) : (
-                  <Text className="text-sm font-bold text-ink-muted dark:text-ink-dark-muted">#{rank}</Text>
+                  <Text className="text-sm font-bold tabular-nums text-ink-muted dark:text-ink-dark-muted">#{rank}</Text>
                 )}
               </View>
-              <View className="flex-1">
-                <Text className="text-sm font-semibold text-ink dark:text-ink-dark">
-                  {formatDate(session.created_at)}
-                </Text>
-                <Text className={`text-xs font-bold ${session.status === 'completed' ? 'text-good' : 'text-accent'}`}>
+              <View className="min-w-0 flex-1">
+                <Text className="text-sm font-bold text-ink dark:text-ink-dark">{formatDate(session.created_at)}</Text>
+                <Text className="mt-0.5 text-xs font-bold text-good dark:text-good-dark">
                   {session.status === 'completed' ? t('circle.finished') : t('circle.active')}
                 </Text>
               </View>
-              <Text className="text-lg font-bold tabular-nums text-ink dark:text-ink-dark">
+              <Text className="text-lg font-extrabold tabular-nums text-ink dark:text-ink-dark">
                 {formatSignedScore(total)}
               </Text>
             </TouchableOpacity>
@@ -136,11 +134,13 @@ export default function SeasonPlayerScreen() {
 
 function StatCard({ label, value, medal }: { label: string; value: string; medal?: string }) {
   return (
-    <View className="flex-1 rounded-2xl bg-surface-alt px-3 py-3 dark:bg-surface-dark-alt">
-      <Text className="text-[10px] font-semibold uppercase text-ink-muted dark:text-ink-dark-muted">{label}</Text>
-      <View className="mt-1 flex-row items-center">
+    <View className="flex-1 rounded-2xl border border-rule bg-surface-alt px-3 py-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
+      <Text className="text-[10px] font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+        {label}
+      </Text>
+      <View className="mt-2 flex-row items-center">
         {medal && <Ionicons name="medal" size={16} color={medal} className="mr-1" />}
-        <Text className="text-base font-bold tabular-nums text-ink dark:text-ink-dark">{value}</Text>
+        <Text className="text-base font-extrabold tabular-nums text-ink dark:text-ink-dark">{value}</Text>
       </View>
     </View>
   );
