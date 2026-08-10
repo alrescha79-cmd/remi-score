@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CloudSyncSection from '@/components/CloudSyncSection';
 import ScreenHeader from '@/components/ScreenHeader';
+import SheetSyncSection from '@/components/SheetSyncSection';
 import { useT } from '@/lib/i18n';
 import { useSettingsStore, type Lang, type ThemePref } from '@/store/settingsStore';
-import SheetSyncSection from '@/components/SheetSyncSection';
 
 const THEMES: { value: ThemePref; icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { value: 'system', icon: 'phone-portrait-outline', key: 'settings.system' },
@@ -27,7 +28,7 @@ export default function SettingsScreen() {
     <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top', 'bottom']}>
       <ScreenHeader title={t('settings.title')} onBack={() => router.back()} />
 
-      <View className="flex-1 px-5">
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="mb-6 mt-2 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
           <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('settings.theme')}</Text>
           <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('settings.themeHint')}</Text>
@@ -89,7 +90,8 @@ export default function SettingsScreen() {
         </View>
 
         <SheetSyncSection />
-      </View>
+        <CloudSyncSection />
+      </ScrollView>
     </SafeAreaView>
   );
 }
