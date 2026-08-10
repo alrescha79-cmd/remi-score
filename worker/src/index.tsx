@@ -2,7 +2,6 @@ import { Hono } from 'hono';
 import { ensureSchema, upsertCircle, type SyncPayload } from './db';
 import CirclePage from './pages/circle';
 import NotFound from './pages/notFound';
-import SessionPage from './pages/session';
 
 type Env = { Bindings: { DB: D1Database } };
 
@@ -194,6 +193,7 @@ app.get('/c/:code/session/:sessionId', async (c) => {
 
   const players = [...playersMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 
+  const SessionPage = (await import('./pages/session')).default;
   return c.html(
     <SessionPage
       code={code}
@@ -202,6 +202,82 @@ app.get('/c/:code/session/:sessionId', async (c) => {
       status={session.status as string}
       rounds={rounds}
       players={players}
+    />
+  );
+});
+
+app.get('/c/:code/player/:playerId', async (c) => {
+  const code = c.req.param('code');
+  const playerId = Number(c.req.param('playerId'));
+  const db = c.env.DB;
+
+  const shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  if (!shareRow) return c.html(<NotFound />, 404);
+
+  const circleId = shareRow.circle_id as number;
+  const circleName = shareRow.circle_name as string;
+
+  const player = await db.prepare('SELECT * FROM players WHERE id = ? AND circle_id = ?')
+    .bind(playerId, circleId).first();
+  if (!player) return c.html(<NotFound />, 404);
+
+  const stats = await db.prepare(`
+    SELECT
+      COALESCE(SUM(s.score_change), 0) as total,
+      COUNT(*) as rounds_played,
+      COALESCE(MAX(s.score_change), 0) as best,
+      COALESCE(MIN(s.score_change), 0) as worst,
+      COUNT(DISTINCT r.session_id) as sessions_played
+    FROM scores s
+    JOIN rounds r ON s.round_id = r.id
+    WHERE s.player_id = ?
+  `).bind(playerId).first();
+
+  const winsRow = await db.prepare(`
+    SELECT COUNT(*) as wins FROM (
+      SELECT r.session_id FROM scores sc
+      JOIN rounds r ON sc.round_id = r.id
+      JOIN sessions se ON se.id = r.session_id
+      WHERE sc.player_id = ? AND se.status = 'completed'
+        AND r.round_number = (SELECT MAX(r2.round_number) FROM rounds r2 WHERE r2.session_id = se.id)
+        AND sc.cumulative_total = (
+          SELECT MAX(sc2.cumulative_total) FROM scores sc2
+          JOIN rounds r3 ON sc2.round_id = r3.id
+          WHERE r3.session_id = se.id AND r3.round_number = r.round_number
+        )
+    )
+  `).bind(playerId).first();
+
+  const sessionScoresRows = await db.prepare(`
+    SELECT se.id as session_id, se.label, se.status, sc.cumulative_total as total
+    FROM scores sc
+    JOIN rounds r ON sc.round_id = r.id
+    JOIN sessions se ON se.id = r.session_id
+    WHERE sc.player_id = ?
+      AND r.round_number = (SELECT MAX(r2.round_number) FROM rounds r2 WHERE r2.session_id = se.id)
+    ORDER BY se.created_at DESC
+  `).bind(playerId).all();
+
+  const sessionScores = (sessionScoresRows.results ?? []).map((r: any) => ({
+    sessionId: r.session_id,
+    label: r.label ?? `Session #${r.session_id}`,
+    total: r.total,
+    status: r.status,
+  }));
+
+  const PlayerPage = (await import('./pages/player')).default;
+  return c.html(
+    <PlayerPage
+      code={code}
+      circleName={circleName}
+      playerName={player.name as string}
+      total={(stats?.total as number) ?? 0}
+      roundsPlayed={(stats?.rounds_played as number) ?? 0}
+      best={(stats?.best as number) ?? 0}
+      worst={(stats?.worst as number) ?? 0}
+      sessionsPlayed={(stats?.sessions_played as number) ?? 0}
+      wins={(winsRow?.wins as number) ?? 0}
+      sessionScores={sessionScores}
     />
   );
 });
