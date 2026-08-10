@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { ensureSchema, upsertCircle, type SyncPayload } from './db';
 import CirclePage from './pages/circle';
 import NotFound from './pages/notFound';
+import SessionPage from './pages/session';
 
 type Env = { Bindings: { DB: D1Database } };
 
@@ -149,6 +150,58 @@ app.get('/c/:code', async (c) => {
       live={live}
       liveSessionId={liveSessionId}
       recentSessions={recentSessions}
+    />
+  );
+});
+
+app.get('/c/:code/session/:sessionId', async (c) => {
+  const code = c.req.param('code');
+  const sessionId = Number(c.req.param('sessionId'));
+  const db = c.env.DB;
+
+  const shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  if (!shareRow) return c.html(<NotFound />, 404);
+
+  const circleId = shareRow.circle_id as number;
+  const circleName = shareRow.circle_name as string;
+
+  const session = await db.prepare('SELECT * FROM sessions WHERE id = ? AND circle_id = ?')
+    .bind(sessionId, circleId).first();
+  if (!session) return c.html(<NotFound />, 404);
+
+  const scoreRows = await db.prepare(`
+    SELECT s.player_id, s.score_change, s.cumulative_total, r.round_number, p.id, p.name
+    FROM scores s
+    JOIN rounds r ON s.round_id = r.id
+    JOIN players p ON s.player_id = p.id
+    WHERE r.session_id = ?
+    ORDER BY r.round_number ASC, p.name ASC
+  `).bind(sessionId).all();
+
+  const playersMap = new Map<number, { id: number; name: string }>();
+  const roundsMap = new Map<number, { player: { id: number; name: string }; change: number; total: number }[]>();
+
+  for (const row of (scoreRows.results ?? []) as any[]) {
+    playersMap.set(row.player_id, { id: row.player_id, name: row.name });
+    const arr = roundsMap.get(row.round_number) ?? [];
+    arr.push({ player: { id: row.player_id, name: row.name }, change: row.score_change, total: row.cumulative_total });
+    roundsMap.set(row.round_number, arr);
+  }
+
+  const rounds = [...roundsMap.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([roundNumber, scores]) => ({ roundNumber, scores }));
+
+  const players = [...playersMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+
+  return c.html(
+    <SessionPage
+      code={code}
+      circleName={circleName}
+      sessionLabel={(session.label as string) ?? `Session #${sessionId}`}
+      status={session.status as string}
+      rounds={rounds}
+      players={players}
     />
   );
 });
