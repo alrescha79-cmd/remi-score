@@ -2,6 +2,8 @@ import { Hono } from 'hono';
 import { ensureSchema, upsertCircle, type SyncPayload } from './db';
 import CirclePage from './pages/circle';
 import NotFound from './pages/notFound';
+import PlayerPage from './pages/player';
+import SessionPage from './pages/session';
 
 type Env = { Bindings: { DB: D1Database } };
 
@@ -193,7 +195,6 @@ app.get('/c/:code/session/:sessionId', async (c) => {
 
   const players = [...playersMap.values()].sort((a, b) => a.name.localeCompare(b.name));
 
-  const SessionPage = (await import('./pages/session')).default;
   return c.html(
     <SessionPage
       code={code}
@@ -265,7 +266,6 @@ app.get('/c/:code/player/:playerId', async (c) => {
     status: r.status,
   }));
 
-  const PlayerPage = (await import('./pages/player')).default;
   return c.html(
     <PlayerPage
       code={code}
