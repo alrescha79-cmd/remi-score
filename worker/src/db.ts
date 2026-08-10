@@ -62,20 +62,95 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   await db.batch(statements.map((s) => db.prepare(s)));
 }
 
+export interface SyncTables {
+  players: { id: number; name: string; circle_id: number; created_at: string }[];
+  sessions: { id: number; circle_id: number; label: string | null; status: string; created_at: string; completed_at: string | null }[];
+  rounds: { id: number; session_id: number; round_number: number; timestamp: string }[];
+  scores: { id: number; round_id: number; player_id: number; score_change: number; cumulative_total: number }[];
+  session_players: { session_id: number; player_id: number; is_active: number }[];
+}
+
 export interface SyncPayload {
   shareCode: string;
   circleId: number;
   circleName: string;
-  tables: {
-    players: { id: number; name: string; circle_id: number; created_at: string }[];
-    sessions: { id: number; circle_id: number; label: string | null; status: string; created_at: string; completed_at: string | null }[];
-    rounds: { id: number; session_id: number; round_number: number; timestamp: string }[];
-    scores: { id: number; round_id: number; player_id: number; score_change: number; cumulative_total: number }[];
-    session_players: { session_id: number; player_id: number; is_active: number }[];
+  baseSyncedAt: string | null;
+  tables: SyncTables;
+}
+
+export interface CircleSnapshot extends SyncTables {
+  shareCode: string;
+  circleId: number;
+  circleName: string;
+  syncedAt: string;
+}
+
+export const SYNC_TABLES = ['players', 'sessions', 'rounds', 'scores', 'session_players'] as const;
+
+export function isSyncTables(v: unknown): v is SyncTables {
+  return (
+    typeof v === 'object' &&
+    v !== null &&
+    SYNC_TABLES.every((t) => Array.isArray((v as Record<string, unknown>)[t]))
+  );
+}
+
+/**
+ * Monotonic strictly-increasing revision timestamp for a circle.
+ * Guarantees two pushes can never share the same `updated_at`, so a
+ * strict-equality CAS check on the client's baseSyncedAt is safe.
+ */
+export function nextSyncedAt(prev: string | null | undefined): string {
+  const now = new Date();
+  if (prev) {
+    const prevMs = Date.parse(prev);
+    if (Number.isFinite(prevMs) && now.getTime() <= prevMs) {
+      return new Date(prevMs + 1).toISOString();
+    }
+  }
+  return now.toISOString();
+}
+
+export async function getCircleByCode(db: D1Database, code: string): Promise<CircleSnapshot | null> {
+  const share = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  if (!share) return null;
+
+  const circleId = share.circle_id as number;
+  const [players, sessions] = await Promise.all([
+    db.prepare('SELECT * FROM players WHERE circle_id = ? ORDER BY id').bind(circleId).all(),
+    db.prepare('SELECT * FROM sessions WHERE circle_id = ? ORDER BY id').bind(circleId).all(),
+  ]);
+  const sessionIds = (sessions.results ?? []).map((s) => s.id as number);
+
+  let rounds: { results: unknown[] } = { results: [] };
+  let scores: { results: unknown[] } = { results: [] };
+  let sessionPlayers: { results: unknown[] } = { results: [] };
+
+  if (sessionIds.length > 0) {
+    const placeholders = sessionIds.map(() => '?').join(',');
+    const roundRes = await db.prepare(`SELECT * FROM rounds WHERE session_id IN (${placeholders}) ORDER BY id`).bind(...sessionIds).all();
+    rounds = roundRes;
+    const roundIds = (roundRes.results ?? []).map((r) => r.id as number);
+    if (roundIds.length > 0) {
+      scores = await db.prepare(`SELECT * FROM scores WHERE round_id IN (${roundIds.map(() => '?').join(',')}) ORDER BY id`).bind(...roundIds).all();
+    }
+    sessionPlayers = await db.prepare(`SELECT * FROM session_players WHERE session_id IN (${placeholders}) ORDER BY session_id`).bind(...sessionIds).all();
+  }
+
+  return {
+    shareCode: code,
+    circleId,
+    circleName: share.circle_name as string,
+    syncedAt: share.updated_at as string,
+    players: (players.results ?? []) as SyncTables['players'],
+    sessions: (sessions.results ?? []) as SyncTables['sessions'],
+    rounds: (rounds.results ?? []) as SyncTables['rounds'],
+    scores: (scores.results ?? []) as SyncTables['scores'],
+    session_players: (sessionPlayers.results ?? []) as SyncTables['session_players'],
   };
 }
 
-export async function upsertCircle(db: D1Database, payload: SyncPayload): Promise<void> {
+export async function upsertCircle(db: D1Database, payload: SyncPayload, updatedAt: string): Promise<void> {
   const { shareCode, circleId, circleName, tables } = payload;
   const now = new Date().toISOString();
 
@@ -86,7 +161,7 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload): Promis
 
   stmts.push(
     db.prepare('INSERT OR REPLACE INTO share_codes (code, circle_id, circle_name, updated_at) VALUES (?, ?, ?, ?)')
-      .bind(shareCode, circleId, circleName, now)
+      .bind(shareCode, circleId, circleName, updatedAt)
   );
 
   stmts.push(

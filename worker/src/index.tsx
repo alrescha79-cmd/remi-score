@@ -1,5 +1,13 @@
 import { Hono } from 'hono';
-import { ensureSchema, upsertCircle, deleteCircleFromD1, type SyncPayload } from './db';
+import {
+  ensureSchema,
+  getCircleByCode,
+  isSyncTables,
+  nextSyncedAt,
+  upsertCircle,
+  deleteCircleFromD1,
+  type SyncPayload,
+} from './db';
 import CirclePage from './pages/circle';
 import NotFound from './pages/notFound';
 import PlayerPage from './pages/player';
@@ -8,6 +16,8 @@ import SessionPage from './pages/session';
 type Env = { Bindings: { DB: D1Database } };
 
 const app = new Hono<Env>();
+
+const CODE_RE = /^[a-z2-9]{6}$/;
 
 app.use('*', async (c, next) => {
   if (c.env.DB) {
@@ -18,6 +28,18 @@ app.use('*', async (c, next) => {
 
 app.get('/health', (c) => c.json({ ok: true }));
 
+app.get('/api/circle', async (c) => {
+  const code = c.req.query('code') ?? '';
+  if (!CODE_RE.test(code)) {
+    return c.json({ ok: false, error: 'cloud.invalidCode' }, 400);
+  }
+  const snapshot = await getCircleByCode(c.env.DB, code);
+  if (!snapshot) {
+    return c.json({ ok: false, error: 'cloud.codeNotFound' }, 404);
+  }
+  return c.json({ ok: true, ...snapshot });
+});
+
 app.post('/api/sync', async (c) => {
   let payload: SyncPayload;
   try {
@@ -26,13 +48,39 @@ app.post('/api/sync', async (c) => {
     return c.json({ ok: false, error: 'invalid_json' }, 400);
   }
 
-  if (!payload.shareCode || !payload.circleId || !payload.tables) {
+  if (!CODE_RE.test(payload.shareCode ?? '')) {
+    return c.json({ ok: false, error: 'cloud.invalidCode' }, 400);
+  }
+  if (typeof payload.circleId !== 'number' || !payload.circleName) {
+    return c.json({ ok: false, error: 'missing_fields' }, 400);
+  }
+  if (typeof payload.baseSyncedAt !== 'string' && payload.baseSyncedAt !== null) {
+    return c.json({ ok: false, error: 'missing_fields' }, 400);
+  }
+  if (!isSyncTables(payload.tables)) {
     return c.json({ ok: false, error: 'missing_fields' }, 400);
   }
 
+  const db = c.env.DB;
+  const share = await db.prepare('SELECT updated_at FROM share_codes WHERE code = ?').bind(payload.shareCode).first();
+
+  if (share) {
+    // CAS: client must be based on the current revision. Stale clients must
+    // pull + merge before pushing, so a lagging device can never clobber
+    // newer data.
+    if (payload.baseSyncedAt !== (share.updated_at as string)) {
+      return c.json({ ok: false, error: 'cloud.stale' }, 409);
+    }
+  } else if (payload.baseSyncedAt !== null) {
+    // Pushing to a code that does not exist yet (and never pulled) is invalid.
+    return c.json({ ok: false, error: 'cloud.codeNotFound' }, 404);
+  }
+
+  const updatedAt = nextSyncedAt(share?.updated_at as string | null | undefined);
+
   try {
-    await upsertCircle(c.env.DB, payload);
-    return c.json({ ok: true });
+    await upsertCircle(db, payload, updatedAt);
+    return c.json({ ok: true, syncedAt: updatedAt });
   } catch (e) {
     return c.json({ ok: false, error: e instanceof Error ? e.message : 'db_error' }, 500);
   }

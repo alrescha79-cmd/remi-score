@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { Player, RoundEntry, ScoreRow } from '../db/models';
 import { listPlayers } from '../db/playerRepo';
+import { getCircle } from '../db/circleRepo';
 import {
   addRound as repoAddRound,
   completeSession,
@@ -9,8 +10,7 @@ import {
   listSessionPlayers,
   setSessionPlayerActive,
 } from '../db/sessionRepo';
-import { exportCircleData } from '../lib/backup';
-import { pushCloudSync } from '../lib/cloudSync';
+import { syncCircleToCloud } from '../lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL } from '../lib/cloudSyncCore';
 import { computeTotals, rankByScore, type Ranked } from '../lib/score';
 import { useSettingsStore } from './settingsStore';
@@ -41,30 +41,32 @@ function derive(players: Player[], scores: ScoreRow[]) {
 }
 
 function fireCloudSync(circleId: number) {
-  const { cloudWorkerUrl, cloudSyncMode, shareCodes, setLastCloudSyncAt } =
+  const { cloudWorkerUrl, cloudSyncMode, shareCodes, circleSyncMeta, setLastCloudSyncAt } =
     useSettingsStore.getState();
   const workerUrl = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
   if (cloudSyncMode !== 'auto' || !shareCodes[circleId]) return;
   const shareCode = shareCodes[circleId];
 
-  exportCircleData(circleId)
-    .then(async (tables) => {
-      const db = await import('../db/database').then((m) => m.getDb());
-      const circle = await db.getFirstAsync<{ name: string }>(
-        'SELECT name FROM circles WHERE id = ?',
-        circleId
-      );
-      await pushCloudSync(workerUrl, {
-        shareCode,
+  void (async () => {
+    try {
+      const circle = await getCircle(circleId);
+      await syncCircleToCloud({
+        url: workerUrl,
         circleId,
+        shareCode,
         circleName: circle?.name ?? '',
-        tables,
+        remoteCircleId: circleSyncMeta[circleId]?.remoteCircleId,
+        getLastSyncedAt: () => useSettingsStore.getState().circleSyncMeta[circleId]?.lastSyncedAt ?? null,
+        setLastSyncedAt: (syncedAt) => {
+          const st = useSettingsStore.getState();
+          st.setCircleSyncMeta(circleId, { ...st.circleSyncMeta[circleId], lastSyncedAt: syncedAt });
+        },
       });
       setLastCloudSyncAt(new Date().toISOString());
-    })
-    .catch((err) => {
+    } catch (err) {
       console.error('[SessionStore] fireCloudSync failed:', err);
-    });
+    }
+  })();
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
