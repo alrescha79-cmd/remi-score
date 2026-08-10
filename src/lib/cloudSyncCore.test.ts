@@ -1,6 +1,62 @@
-import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
-import { generateShareCode, validateShareCode } from './cloudSyncCore.ts';
+import { describe, it } from 'node:test';
+import {
+  generateShareCode,
+  mergeSnapshots,
+  translateForPush,
+  validateShareCode,
+  type MergeInput,
+  type SyncIdMapEntry,
+  type SyncRow,
+  type SyncTables,
+} from './cloudSyncCore.ts';
+
+function tables(over: Partial<SyncTables> = {}): SyncTables {
+  return {
+    players: [],
+    sessions: [],
+    rounds: [],
+    scores: [],
+    session_players: [],
+    ...over,
+  };
+}
+
+function player(id: number, name: string): SyncRow {
+  return { id, name, circle_id: 5, created_at: '2026-01-01T00:00:00.000Z' };
+}
+
+function session(id: number, label: string | null, status = 'active'): SyncRow {
+  return { id, circle_id: 5, label, status, created_at: '2026-01-01T00:00:00.000Z', completed_at: null };
+}
+
+function round(id: number, sessionId: number, roundNumber: number): SyncRow {
+  return { id, session_id: sessionId, round_number: roundNumber, timestamp: '2026-01-01T00:00:00.000Z' };
+}
+
+function score(id: number, roundId: number, playerId: number, change: number): SyncRow {
+  return { id, round_id: roundId, player_id: playerId, score_change: change, cumulative_total: change };
+}
+
+function sp(sessionId: number, playerId: number): SyncRow {
+  return { session_id: sessionId, player_id: playerId, is_active: 1 };
+}
+
+function input(over: Partial<MergeInput>): MergeInput {
+  return {
+    local: tables(),
+    remote: tables(),
+    pushMap: [],
+    takenIds: {
+      players: new Set(),
+      sessions: new Set(),
+      rounds: new Set(),
+      scores: new Set(),
+      session_players: new Set(),
+    },
+    ...over,
+  };
+}
 
 describe('generateShareCode', () => {
   it('produces 6-char lowercase alphanumeric code', () => {
@@ -18,14 +74,138 @@ describe('generateShareCode', () => {
 });
 
 describe('validateShareCode', () => {
-  it('accepts valid codes', () => {
+  it('accepts 6 chars from the alphabet', () => {
     assert.ok(validateShareCode('abc234'));
-    assert.ok(validateShareCode('zzz999'));
+    assert.ok(validateShareCode('z2x9c8'));
   });
-  it('rejects invalid codes', () => {
-    assert.ok(!validateShareCode(''));
-    assert.ok(!validateShareCode('abc'));
+  it('rejects wrong length or illegal chars', () => {
+    assert.ok(!validateShareCode('abc23'));
     assert.ok(!validateShareCode('ABC234'));
     assert.ok(!validateShareCode('abc23!'));
+    assert.ok(!validateShareCode('ab c23'));
+  });
+});
+
+describe('mergeSnapshots', () => {
+  it('inserts remote-only rows (fresh join)', () => {
+    const remote = tables({
+      players: [player(1, 'Andi'), player(2, 'Budi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(1, 1, 1)],
+      scores: [score(1, 1, 1, 100), score(2, 1, 2, 50)],
+      session_players: [sp(1, 1), sp(1, 2)],
+    });
+    const { tables: out } = mergeSnapshots(input({ remote }));
+    assert.deepEqual(out.players, remote.players);
+    assert.deepEqual(out.sessions, remote.sessions);
+    assert.deepEqual(out.rounds, remote.rounds);
+    assert.deepEqual(out.scores, remote.scores);
+    assert.deepEqual(out.session_players, remote.session_players);
+  });
+
+  it('keeps local-only rows and adds remote-only rows', () => {
+    const local = tables({
+      players: [player(1, 'Andi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(1, 1, 1)],
+      scores: [score(1, 1, 1, 100)],
+      session_players: [sp(1, 1)],
+    });
+    const remote = tables({
+      players: [player(1, 'Andi'), player(2, 'Budi')],
+      sessions: [session(1, 'S1'), session(2, 'S2')],
+      rounds: [round(1, 1, 1), round(2, 2, 1)],
+      scores: [score(1, 1, 1, 100), score(2, 2, 2, 50)],
+      session_players: [sp(1, 1), sp(2, 2)],
+    });
+    const { tables: out } = mergeSnapshots(input({ local, remote }));
+    assert.equal(out.players.length, 2);
+    assert.equal(out.sessions.length, 2);
+    assert.equal(out.rounds.length, 2);
+    assert.equal(out.scores.length, 2);
+    assert.equal(out.session_players.length, 2);
+  });
+
+  it('dedupes rows with same id and same content', () => {
+    const local = tables({ players: [player(1, 'Andi')] });
+    const remote = tables({ players: [player(1, 'Andi')] });
+    const { tables: out } = mergeSnapshots(input({ local, remote }));
+    assert.equal(out.players.length, 1);
+    assert.equal(out.players[0].name, 'Andi');
+  });
+
+  it('keeps BOTH entities when same id has different content (id collision)', () => {
+    const local = tables({ players: [player(1, 'Andi')] });
+    const remote = tables({ players: [player(1, 'Budi')] });
+    const { tables: out, pushMap } = mergeSnapshots(input({ local, remote }));
+    assert.equal(out.players.length, 2);
+    const localRow = out.players.find((p) => p.name === 'Andi')!;
+    const remoteRow = out.players.find((p) => p.name === 'Budi')!;
+    assert.equal(remoteRow.id, 1);
+    assert.notEqual(localRow.id, 1);
+    assert.deepEqual(pushMap, [{ table: 'players', localId: localRow.id, remoteId: 1 }]);
+  });
+
+  it('remaps a remote id already taken by another local circle', () => {
+    const remote = tables({ players: [player(1, 'Budi')] });
+    const { tables: out, pushMap } = mergeSnapshots(
+      input({
+        remote,
+        takenIds: { players: new Set([1]), sessions: new Set(), rounds: new Set(), scores: new Set(), session_players: new Set() },
+      })
+    );
+    assert.equal(out.players.length, 1);
+    assert.notEqual(out.players[0].id, 1);
+    assert.deepEqual(pushMap, [{ table: 'players', localId: out.players[0].id, remoteId: 1 }]);
+  });
+
+  it('merges composite-keyed rows by natural key, remote wins, FK remapped', () => {
+    const local = tables({
+      players: [player(1, 'Andi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(7, 1, 2)],
+      scores: [score(7, 7, 1, 50)],
+    });
+    const remote = tables({
+      players: [player(1, 'Andi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(10, 1, 2)],
+      scores: [score(10, 10, 1, 80)],
+    });
+    const { tables: out } = mergeSnapshots(input({ local, remote }));
+    assert.equal(out.rounds.length, 1);
+    assert.equal(out.rounds[0].id, 10);
+    assert.equal(out.scores.length, 1);
+    assert.equal(out.scores[0].round_id, 10);
+    assert.equal(out.scores[0].score_change, 80);
+  });
+
+  it('never writes session_players entries into the push map (no id column)', () => {
+    const local = tables({ session_players: [sp(1, 1)] });
+    const remote = tables({ session_players: [sp(1, 1), sp(1, 2)] });
+    const { tables: out, pushMap } = mergeSnapshots(input({ local, remote }));
+    assert.equal(out.session_players.length, 2);
+    assert.equal(pushMap.filter((e) => e.table === 'session_players').length, 0);
+  });
+});
+
+describe('translateForPush', () => {
+  it('translates ids, FK references and circle_id into remote space', () => {
+    const local = tables({
+      players: [player(2, 'Andi'), player(3, 'Budi')],
+      sessions: [session(4, 'S1')],
+      rounds: [round(5, 4, 1)],
+      scores: [score(6, 5, 2, 100)],
+      session_players: [sp(4, 3)],
+    });
+    const pushMap: SyncIdMapEntry[] = [{ table: 'players', localId: 2, remoteId: 1 }];
+    const out = translateForPush(local, pushMap, 42);
+    assert.equal(out.players[0].id, 1);
+    assert.equal(out.players[0].circle_id, 42);
+    assert.equal(out.players[1].id, 3);
+    assert.equal(out.scores[0].player_id, 1);
+    assert.equal(out.session_players[0].player_id, 3);
+    assert.equal(out.sessions[0].circle_id, 42);
+    assert.equal(out.rounds[0].session_id, 4);
   });
 });

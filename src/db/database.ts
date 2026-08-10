@@ -58,6 +58,14 @@ const MIGRATIONS: string[] = [
     PRIMARY KEY (session_id, player_id)
   );
   `,
+  `
+  CREATE TABLE sync_id_map (
+    table_name TEXT NOT NULL,
+    local_id INTEGER NOT NULL,
+    remote_id INTEGER NOT NULL,
+    PRIMARY KEY (table_name, local_id)
+  );
+  `,
 ];
 
 let dbPromise: Promise<SQLiteDatabase> | null = null;

@@ -2,17 +2,16 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import * as Clipboard from 'expo-clipboard';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Pressable, Text, TouchableOpacity, View } from 'react-native';
-import { exportCircleData } from '@/lib/backup';
-import { pushCloudSync } from '@/lib/cloudSync';
+import { getCircle, listCircles } from '@/db/circleRepo';
+import { syncCircleFromSnapshot } from '@/db/cloudSyncRepo';
+import { pullCloudSync, syncCircleToCloud } from '@/lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL, generateShareCode } from '@/lib/cloudSyncCore';
 import { formatDateTime } from '@/lib/format';
 import { t, useT } from '@/lib/i18n';
-import { getDb } from '@/db/database';
-import { listCircles } from '@/db/circleRepo';
 import { useSettingsStore, type CloudSyncMode } from '@/store/settingsStore';
 import type { CircleWithStats } from '@/db/models';
 
-type Busy = 'sync' | 'test' | null;
+type Busy = 'sync' | 'pull' | 'test' | null;
 
 const MODES: { value: CloudSyncMode; key: string }[] = [
   { value: 'off', key: 'cloud.off' },
@@ -42,6 +41,8 @@ export default function CloudSyncSection() {
   const [selectedCircleId, setSelectedCircleId] = useState<number | null>(null);
   const [copied, setCopied] = useState(false);
 
+  const circleSyncMeta = useSettingsStore((s) => s.circleSyncMeta);
+
   useEffect(() => {
     listCircles().then((c) => {
       setCircles(c);
@@ -51,6 +52,17 @@ export default function CloudSyncSection() {
 
   const code = selectedCircleId ? shareCodes[selectedCircleId] : undefined;
   const shareUrl = code ? `${DEFAULT_CLOUD_WORKER_URL.replace(/\/$/, '')}/c/${code}` : null;
+  const meta = selectedCircleId ? circleSyncMeta[selectedCircleId] : undefined;
+  const isJoined = meta?.remoteCircleId != null;
+
+  const getLastSyncedAt = () =>
+    selectedCircleId ? (circleSyncMeta[selectedCircleId]?.lastSyncedAt ?? null) : null;
+
+  const setLastSyncedAt = (syncedAt: string) => {
+    if (!selectedCircleId) return;
+    const st = useSettingsStore.getState();
+    st.setCircleSyncMeta(selectedCircleId, { ...st.circleSyncMeta[selectedCircleId], lastSyncedAt: syncedAt });
+  };
 
   const handleGenerate = () => {
     if (!selectedCircleId) return;
@@ -63,22 +75,39 @@ export default function CloudSyncSection() {
     setError(null);
     setDone(false);
     try {
-      const tables = await exportCircleData(selectedCircleId);
-      const db = await getDb();
-      const circle = await db.getFirstAsync<{ name: string }>(
-        'SELECT name FROM circles WHERE id = ?',
-        selectedCircleId
-      );
-      await pushCloudSync(DEFAULT_CLOUD_WORKER_URL, {
-        shareCode: code,
+      const circle = await getCircle(selectedCircleId);
+      await syncCircleToCloud({
+        url: DEFAULT_CLOUD_WORKER_URL,
         circleId: selectedCircleId,
+        shareCode: code,
         circleName: circle?.name ?? '',
-        tables,
+        remoteCircleId: meta?.remoteCircleId,
+        getLastSyncedAt,
+        setLastSyncedAt,
       });
       setLastCloudSyncAt(new Date().toISOString());
       setDone(true);
     } catch (e) {
       console.error('[CloudSyncSection] handleSync failed:', e);
+      setError(errText(e));
+    } finally {
+      setBusy(null);
+    }
+  };
+
+  const handlePull = async () => {
+    if (busy || !selectedCircleId || !code) return;
+    setBusy('pull');
+    setError(null);
+    setDone(false);
+    try {
+      const snapshot = await pullCloudSync(DEFAULT_CLOUD_WORKER_URL, code);
+      await syncCircleFromSnapshot(selectedCircleId, snapshot);
+      setLastSyncedAt(snapshot.syncedAt);
+      setLastCloudSyncAt(new Date().toISOString());
+      setDone(true);
+    } catch (e) {
+      console.error('[CloudSyncSection] handlePull failed:', e);
       setError(errText(e));
     } finally {
       setBusy(null);
@@ -189,22 +218,44 @@ export default function CloudSyncSection() {
       )}
 
       {/* Sync button */}
-      <TouchableOpacity
-        onPress={handleSync}
-        disabled={busy != null || !code || cloudSyncMode === 'off'}
-        className={`mt-4 flex-row items-center justify-center gap-2 rounded-full py-3 ${
-          busy || !code || cloudSyncMode === 'off' ? 'opacity-40' : 'opacity-100'
-        } bg-accent dark:bg-accent-dark`}
-      >
-        {busy === 'sync' ? (
-          <ActivityIndicator size="small" color="#ffffff" />
-        ) : (
-          <Ionicons name="cloud-upload-outline" size={16} color="#ffffff" />
+      <View className="mt-4 flex-row gap-3">
+        <TouchableOpacity
+          onPress={handleSync}
+          disabled={busy != null || !code || cloudSyncMode === 'off'}
+          className={`flex-1 flex-row items-center justify-center gap-2 rounded-full py-3 ${
+            busy || !code || cloudSyncMode === 'off' ? 'opacity-40' : 'opacity-100'
+          } bg-accent dark:bg-accent-dark`}
+        >
+          {busy === 'sync' ? (
+            <ActivityIndicator size="small" color="#ffffff" />
+          ) : (
+            <Ionicons name="cloud-upload-outline" size={16} color="#ffffff" />
+          )}
+          <Text className="text-sm font-extrabold text-white">
+            {busy === 'sync' ? t('cloud.syncing') : t('cloud.sync')}
+          </Text>
+        </TouchableOpacity>
+
+        {isJoined && (
+          <TouchableOpacity
+            onPress={handlePull}
+            disabled={busy != null}
+            accessibilityRole="button"
+            className={`flex-1 flex-row items-center justify-center gap-2 rounded-full border border-accent/40 py-3 ${
+              busy ? 'opacity-40' : 'opacity-100'
+            } dark:border-accent-dark/40`}
+          >
+            {busy === 'pull' ? (
+              <ActivityIndicator size="small" color="#0071e3" />
+            ) : (
+              <Ionicons name="cloud-download-outline" size={16} className="text-accent dark:text-accent-dark" />
+            )}
+            <Text className="text-sm font-extrabold text-accent-deep dark:text-accent-dark-deep">
+              {busy === 'pull' ? t('cloud.pulling') : t('cloud.pull')}
+            </Text>
+          </TouchableOpacity>
         )}
-        <Text className="text-sm font-extrabold text-white">
-          {busy === 'sync' ? t('cloud.syncing') : t('cloud.sync')}
-        </Text>
-      </TouchableOpacity>
+      </View>
 
       {error != null && <Text className="mt-2 text-xs text-bad dark:text-bad-dark">{error}</Text>}
       {done && error == null && (

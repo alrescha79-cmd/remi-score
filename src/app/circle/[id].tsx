@@ -7,13 +7,17 @@ import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDi
 import EmptyState from '@/components/EmptyState';
 import ScreenHeader from '@/components/ScreenHeader';
 import { getCircle } from '@/db/circleRepo';
+import { syncCircleFromSnapshot } from '@/db/cloudSyncRepo';
 import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
 import { addPlayer, deletePlayer, listPlayers, renamePlayer } from '@/db/playerRepo';
 import type { Circle, Player, SeasonPlayerStat, SessionSummary } from '@/db/models';
 import { createSession, deleteSession, getActiveSession } from '@/db/sessionRepo';
+import { pullCloudSync } from '@/lib/cloudSync';
+import { DEFAULT_CLOUD_WORKER_URL } from '@/lib/cloudSyncCore';
 import { formatDateTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { rankByScore } from '@/lib/score';
+import { useSettingsStore } from '@/store/settingsStore';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
@@ -52,10 +56,29 @@ export default function CircleScreen() {
     setActiveSessionId((await getActiveSession(circleId))?.id ?? null);
   }, [circleId]);
 
+  const cloudSyncMode = useSettingsStore((s) => s.cloudSyncMode);
+  const isJoined = useSettingsStore((s) => s.circleSyncMeta[circleId]?.remoteCircleId != null);
+
   useFocusEffect(
     useCallback(() => {
       refresh();
-    }, [refresh])
+      if (!isJoined || cloudSyncMode !== 'auto') return;
+      const timer = setInterval(async () => {
+        try {
+          const { cloudWorkerUrl, shareCodes, circleSyncMeta, setCircleSyncMeta } = useSettingsStore.getState();
+          const code = shareCodes[circleId];
+          if (!code) return;
+          const url = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
+          const snapshot = await pullCloudSync(url, code);
+          await syncCircleFromSnapshot(circleId, snapshot);
+          setCircleSyncMeta(circleId, { ...circleSyncMeta[circleId], lastSyncedAt: snapshot.syncedAt });
+          refresh();
+        } catch (e) {
+          console.error('[CircleScreen] auto-pull failed:', e);
+        }
+      }, 15000);
+      return () => clearInterval(timer);
+    }, [refresh, circleId, isJoined, cloudSyncMode])
   );
 
   const submitPlayer = async () => {
