@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { ensureSchema, upsertCircle, type SyncPayload } from './db';
+import { ensureSchema, upsertCircle, deleteCircleFromD1, type SyncPayload } from './db';
 import CirclePage from './pages/circle';
 import NotFound from './pages/notFound';
 import PlayerPage from './pages/player';
@@ -32,6 +32,18 @@ app.post('/api/sync', async (c) => {
 
   try {
     await upsertCircle(c.env.DB, payload);
+    return c.json({ ok: true });
+  } catch (e) {
+    return c.json({ ok: false, error: e instanceof Error ? e.message : 'db_error' }, 500);
+  }
+});
+
+app.delete('/api/circle/:circleId', async (c) => {
+  const circleId = Number(c.req.param('circleId'));
+  if (!circleId) return c.json({ ok: false, error: 'invalid_id' }, 400);
+
+  try {
+    await deleteCircleFromD1(c.env.DB, circleId);
     return c.json({ ok: true });
   } catch (e) {
     return c.json({ ok: false, error: e instanceof Error ? e.message : 'db_error' }, 500);

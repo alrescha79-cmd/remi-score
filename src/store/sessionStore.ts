@@ -11,6 +11,7 @@ import {
 } from '../db/sessionRepo';
 import { exportCircleData } from '../lib/backup';
 import { pushCloudSync } from '../lib/cloudSync';
+import { DEFAULT_CLOUD_WORKER_URL } from '../lib/cloudSyncCore';
 import { computeTotals, rankByScore, type Ranked } from '../lib/score';
 import { useSettingsStore } from './settingsStore';
 
@@ -42,7 +43,8 @@ function derive(players: Player[], scores: ScoreRow[]) {
 function fireCloudSync(circleId: number) {
   const { cloudWorkerUrl, cloudSyncMode, shareCodes, setLastCloudSyncAt } =
     useSettingsStore.getState();
-  if (cloudSyncMode !== 'auto' || !cloudWorkerUrl || !shareCodes[circleId]) return;
+  const workerUrl = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
+  if (cloudSyncMode !== 'auto' || !shareCodes[circleId]) return;
   const shareCode = shareCodes[circleId];
 
   exportCircleData(circleId)
@@ -52,7 +54,7 @@ function fireCloudSync(circleId: number) {
         'SELECT name FROM circles WHERE id = ?',
         circleId
       );
-      await pushCloudSync(cloudWorkerUrl, {
+      await pushCloudSync(workerUrl, {
         shareCode,
         circleId,
         circleName: circle?.name ?? '',
@@ -60,8 +62,8 @@ function fireCloudSync(circleId: number) {
       });
       setLastCloudSyncAt(new Date().toISOString());
     })
-    .catch(() => {
-      // ponytail: fire-and-forget — silent fail. User can manual sync.
+    .catch((err) => {
+      console.error('[SessionStore] fireCloudSync failed:', err);
     });
 }
 

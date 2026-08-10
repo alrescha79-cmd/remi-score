@@ -20,7 +20,10 @@ function errText(e: unknown): string {
 
 export default function SheetSyncSection() {
   const t = useT();
-  const { sheetWebhookUrl, setSheetWebhookUrl, lastSyncAt, setLastSyncAt } = useSettingsStore();
+  const sheetWebhookUrl = useSettingsStore((s) => s.sheetWebhookUrl);
+  const setSheetWebhookUrl = useSettingsStore((s) => s.setSheetWebhookUrl);
+  const lastSyncAt = useSettingsStore((s) => s.lastSyncAt);
+  const setLastSyncAt = useSettingsStore((s) => s.setLastSyncAt);
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);

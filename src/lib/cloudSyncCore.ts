@@ -1,3 +1,5 @@
+export const DEFAULT_CLOUD_WORKER_URL = 'https://kopek.cakson.my.id';
+
 export function generateShareCode(): string {
   const chars = 'abcdefghijkmnpqrstuvwxyz23456789';
   let code = '';

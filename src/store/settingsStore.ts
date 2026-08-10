@@ -23,6 +23,7 @@ interface SettingsState {
   setCloudSyncMode: (mode: CloudSyncMode) => void;
   setLastCloudSyncAt: (iso: string) => void;
   setShareCode: (circleId: number, code: string) => void;
+  removeShareCode: (circleId: number) => void;
 }
 
 export const useSettingsStore = create<SettingsState>()(
@@ -32,7 +33,7 @@ export const useSettingsStore = create<SettingsState>()(
       lang: 'en',
       sheetWebhookUrl: '',
       lastSyncAt: null,
-      cloudWorkerUrl: '',
+      cloudWorkerUrl: 'https://kopek.cakson.my.id',
       cloudSyncMode: 'off',
       lastCloudSyncAt: null,
       shareCodes: {},
@@ -45,6 +46,12 @@ export const useSettingsStore = create<SettingsState>()(
       setLastCloudSyncAt: (lastCloudSyncAt) => set({ lastCloudSyncAt }),
       setShareCode: (circleId, code) =>
         set((s) => ({ shareCodes: { ...s.shareCodes, [circleId]: code } })),
+      removeShareCode: (circleId) =>
+        set((s) => {
+          const next = { ...s.shareCodes };
+          delete next[circleId];
+          return { shareCodes: next };
+        }),
     }),
     { name: 'remiscore-settings', storage: createJSONStorage(() => AsyncStorage) }
   )

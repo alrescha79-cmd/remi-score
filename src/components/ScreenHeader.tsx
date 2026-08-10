@@ -20,11 +20,11 @@ export default function ScreenHeader({ title, subtitle, onBack, right, backLabel
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={backLabel ?? 'Back'}
-          className={`mr-3 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-rule-dark dark:bg-surface-dark-alt ${
+          className={`mr-3 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/15 dark:bg-surface-dark-fill ${
             compact ? 'h-9 w-9' : 'h-11 w-11'
           }`}
         >
-          <Ionicons name="chevron-back" size={compact ? 18 : 20} className="text-ink-faint dark:text-ink-dark-faint" />
+          <Ionicons name="chevron-back" size={compact ? 18 : 20} className="text-ink dark:text-ink-dark" />
         </TouchableOpacity>
       )}
       <View className="min-w-0 flex-1">

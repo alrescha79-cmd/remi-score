@@ -124,7 +124,7 @@ export default function AddRoundScreen() {
               key={p.id}
               className={`mb-2.5 rounded-2xl border p-3 ${
                 isActive
-                  ? 'border-rule bg-surface-alt shadow-soft opacity-100 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none'
+                  ? 'border-rule bg-surface-alt opacity-100 dark:border-rule-dark dark:bg-surface-dark-alt'
                   : 'border-rule/40 bg-surface-fill/30 opacity-60 dark:border-rule-dark/40 dark:bg-surface-dark-fill/20'
               }`}
             >

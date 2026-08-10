@@ -12,9 +12,9 @@ module.exports = {
           fill: '#e8ebf2',
         },
         'surface-dark': {
-          DEFAULT: '#0d1117',
-          alt: '#161b22',
-          fill: '#21262d',
+          DEFAULT: '#0e1217',
+          alt: '#181f2a',
+          fill: '#242c3d',
         },
         ink: {
           DEFAULT: '#1b1f27',
@@ -22,12 +22,12 @@ module.exports = {
           faint: '#5f6673',
         },
         'ink-dark': {
-          DEFAULT: '#f5f7fc',
-          muted: '#9da8b8',
-          faint: '#788496',
+          DEFAULT: '#ffffff',
+          muted: '#b0bccd',
+          faint: '#8a99ad',
         },
         rule: 'rgba(17, 26, 45, 0.08)',
-        'rule-dark': 'rgba(255, 255, 255, 0.1)',
+        'rule-dark': 'rgba(255, 255, 255, 0.15)',
         accent: {
           DEFAULT: '#0071e3',
           ink: '#ffffff',

@@ -58,7 +58,8 @@ const SCHEMA = `
 `;
 
 export async function ensureSchema(db: D1Database): Promise<void> {
-  await db.exec(SCHEMA);
+  const statements = SCHEMA.split(';').map((s) => s.trim()).filter((s) => s.length > 0);
+  await db.batch(statements.map((s) => db.prepare(s)));
 }
 
 export interface SyncPayload {
@@ -127,5 +128,18 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload): Promis
       .bind(sp.session_id, sp.player_id, sp.is_active));
   }
 
+  await db.batch(stmts);
+}
+
+export async function deleteCircleFromD1(db: D1Database, circleId: number): Promise<void> {
+  const stmts: D1PreparedStatement[] = [
+    db.prepare('DELETE FROM share_codes WHERE circle_id = ?').bind(circleId),
+    db.prepare('DELETE FROM scores WHERE round_id IN (SELECT r.id FROM rounds r JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ?)').bind(circleId),
+    db.prepare('DELETE FROM rounds WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)').bind(circleId),
+    db.prepare('DELETE FROM session_players WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)').bind(circleId),
+    db.prepare('DELETE FROM sessions WHERE circle_id = ?').bind(circleId),
+    db.prepare('DELETE FROM players WHERE circle_id = ?').bind(circleId),
+    db.prepare('DELETE FROM circles WHERE id = ?').bind(circleId),
+  ];
   await db.batch(stmts);
 }
