@@ -30,6 +30,15 @@
 1. Bump version in **both** `package.json` and `app.json` (keep them equal).
 2. `git tag vX.Y.Z && git push origin vX.Y.Z` — workflow builds arm64-v8a APK and publishes GitHub Release.
 
+## Cloudflare Worker (`worker/`)
+
+- `cd worker && npm run dev` — local dev
+- `cd worker && npm run deploy` — deploy to Cloudflare
+- D1 database: `remiscore-d1`. Schema managed in `worker/src/db.ts` (CREATE IF NOT EXISTS).
+- First deploy: `cd worker && npx wrangler d1 create remiscore-d1`, copy database_id into `wrangler.jsonc`.
+- API: POST `/api/sync` receives full circle snapshot from app.
+- Web: `/c/:code` public dashboard, SSR via Hono JSX.
+
 ## Google Sheets backup gotchas
 
 - Apps Script lives in `apps-script/Code.gs`, deployed by the user (webhook URL stored in Settings).
