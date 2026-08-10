@@ -9,7 +9,11 @@ import {
   listSessionPlayers,
   setSessionPlayerActive,
 } from '../db/sessionRepo';
+import { exportCircleData } from '../lib/backup';
+import { pushCloudSync } from '../lib/cloudSync';
+import { DEFAULT_CLOUD_WORKER_URL } from '../lib/cloudSyncCore';
 import { computeTotals, rankByScore, type Ranked } from '../lib/score';
+import { useSettingsStore } from './settingsStore';
 
 interface SessionState {
   sessionId: number | null;
@@ -34,6 +38,33 @@ function derive(players: Player[], scores: ScoreRow[]) {
   const totalsObj = Object.fromEntries(totals);
   const ranking = rankByScore(players.map((p) => ({ item: p, score: totals.get(p.id) ?? 0 })));
   return { totals: totalsObj, ranking };
+}
+
+function fireCloudSync(circleId: number) {
+  const { cloudWorkerUrl, cloudSyncMode, shareCodes, setLastCloudSyncAt } =
+    useSettingsStore.getState();
+  const workerUrl = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
+  if (cloudSyncMode !== 'auto' || !shareCodes[circleId]) return;
+  const shareCode = shareCodes[circleId];
+
+  exportCircleData(circleId)
+    .then(async (tables) => {
+      const db = await import('../db/database').then((m) => m.getDb());
+      const circle = await db.getFirstAsync<{ name: string }>(
+        'SELECT name FROM circles WHERE id = ?',
+        circleId
+      );
+      await pushCloudSync(workerUrl, {
+        shareCode,
+        circleId,
+        circleName: circle?.name ?? '',
+        tables,
+      });
+      setLastCloudSyncAt(new Date().toISOString());
+    })
+    .catch((err) => {
+      console.error('[SessionStore] fireCloudSync failed:', err);
+    });
 }
 
 export const useSessionStore = create<SessionState>((set, get) => ({
@@ -73,11 +104,12 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   async addRound(entries) {
-    const { sessionId, players } = get();
+    const { sessionId, players, circleId } = get();
     if (!sessionId) return;
     await repoAddRound(sessionId, entries);
     const scores = await listRoundScores(sessionId);
     set({ scores, ...derive(players, scores) });
+    if (circleId) fireCloudSync(circleId);
   },
 
   async setActive(playerId, isActive) {
@@ -88,8 +120,9 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   },
 
   async finish() {
-    const { sessionId } = get();
+    const { sessionId, circleId } = get();
     if (!sessionId) return;
     await completeSession(sessionId);
+    if (circleId) fireCloudSync(circleId);
   },
 }));

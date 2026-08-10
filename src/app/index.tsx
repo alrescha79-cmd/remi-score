@@ -7,8 +7,11 @@ import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDi
 import EmptyState from '@/components/EmptyState';
 import { createCircle, deleteCircle, listCircles } from '@/db/circleRepo';
 import type { CircleWithStats } from '@/db/models';
+import { deleteCloudCircle } from '@/lib/cloudSync';
+import { DEFAULT_CLOUD_WORKER_URL } from '@/lib/cloudSyncCore';
 import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -44,6 +47,10 @@ export default function HomeScreen() {
       destructive: true,
       icon: 'trash-outline',
       onConfirm: async () => {
+        const { cloudWorkerUrl, removeShareCode } = useSettingsStore.getState();
+        const url = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
+        deleteCloudCircle(url, circle.id);
+        removeShareCode(circle.id);
         await deleteCircle(circle.id);
         refresh();
       },
@@ -62,9 +69,9 @@ export default function HomeScreen() {
             onPress={() => router.push('/settings')}
             accessibilityRole="button"
             accessibilityLabel="Settings"
-            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-rule-dark dark:bg-surface-dark-alt"
+            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/15 dark:bg-surface-dark-fill"
           >
-            <Ionicons name="settings-outline" size={20} className="text-ink-faint dark:text-ink-dark-faint" />
+            <Ionicons name="settings-outline" size={20} className="text-ink dark:text-ink-dark" />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
@@ -91,7 +98,7 @@ export default function HomeScreen() {
               onPress={() => router.push({ pathname: '/circle/[id]', params: { id: String(circle.id) } })}
               onLongPress={() => confirmDelete(circle)}
               accessibilityRole="button"
-              className="mb-3 flex-row items-center rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+              className="mb-3 flex-row items-center rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft active:opacity-80 dark:border-white/12 dark:bg-surface-dark-alt dark:shadow-none"
             >
               <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
                 <Ionicons name="people" size={22} className="text-accent dark:text-accent-dark" />
@@ -110,7 +117,7 @@ export default function HomeScreen() {
                 </Text>
               </View>
               <View className="ml-2 h-7 w-7 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
-                <Ionicons name="chevron-forward" size={16} className="text-ink-faint dark:text-ink-dark-faint" />
+                <Ionicons name="chevron-forward" size={16} className="text-ink-muted dark:text-ink-dark-muted" />
               </View>
             </TouchableOpacity>
           ))

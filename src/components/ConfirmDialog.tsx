@@ -66,7 +66,7 @@ export default function ConfirmDialog({ options, onDismiss }: Props) {
     <Modal transparent visible animationType="fade" onRequestClose={handleDismiss}>
       <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={handleDismiss}>
         <Pressable
-          className="w-full rounded-[24px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+          className="w-full rounded-[24px] border border-rule bg-surface-alt p-6 dark:border-white/20 dark:bg-surface-dark-alt dark:shadow-none"
           onPress={() => {}}
         >
           {icon != null && (
@@ -92,9 +92,9 @@ export default function ConfirmDialog({ options, onDismiss }: Props) {
                 onPress={handleDismiss}
                 disabled={busy}
                 accessibilityRole="button"
-                className="flex-1 items-center justify-center rounded-full border border-rule py-4 dark:border-rule-dark"
+                className="flex-1 items-center justify-center rounded-full border border-rule py-4 dark:border-white/20"
               >
-                <Text className="text-base font-bold text-ink-muted dark:text-ink-dark-muted">
+                <Text className="text-base font-bold text-ink dark:text-ink-dark">
                   {cancelText ?? t('common.cancel')}
                 </Text>
               </TouchableOpacity>

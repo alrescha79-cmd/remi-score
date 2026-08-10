@@ -57,3 +57,7 @@ example
 # generated native folders
 /ios
 /android
+
+# worker
+worker/node_modules/
+worker/.wrangler/

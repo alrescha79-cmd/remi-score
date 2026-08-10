@@ -179,10 +179,10 @@ export default function CircleScreen() {
                 onPress={() => openPlayerModal(p)}
                 onLongPress={() => confirmDeletePlayer(p)}
                 accessibilityRole="button"
-                className="mb-2 mr-2 flex-row items-center rounded-full bg-accent-soft py-2 pl-4 pr-3 dark:bg-accent-dark-soft"
+                className="mb-2 mr-2 flex-row items-center rounded-full bg-accent-soft py-2 pl-4 pr-3 dark:bg-[#1a2b42]"
               >
-                <Text className="text-sm font-bold text-accent-deep dark:text-accent-dark-deep">{p.name}</Text>
-                <Ionicons name="pencil" size={12} className="ml-2 text-ink-faint dark:text-ink-dark-faint" />
+                <Text className="text-sm font-bold text-accent-deep dark:text-[#58a6ff]">{p.name}</Text>
+                <Ionicons name="pencil" size={12} className="ml-2 text-accent/60 dark:text-[#58a6ff]/70" />
               </TouchableOpacity>
             ))}
           </View>
@@ -208,7 +208,7 @@ export default function CircleScreen() {
                 })
               }
               accessibilityRole="button"
-              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 shadow-soft active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 shadow-soft active:opacity-80 dark:border-white/10 dark:bg-surface-dark-alt dark:shadow-none"
             >
               <View className="mr-3 w-9 items-center">
                 <RankBadge rank={rank} />
@@ -225,7 +225,7 @@ export default function CircleScreen() {
                 </Text>
               </View>
               <Text className="text-lg font-extrabold tabular-nums text-ink dark:text-ink-dark">{score}</Text>
-              <Ionicons name="chevron-forward" size={16} className="ml-2 text-ink-faint dark:text-ink-dark-faint" />
+              <Ionicons name="chevron-forward" size={16} className="ml-2 text-ink-muted dark:text-ink-dark-muted" />
             </TouchableOpacity>
           ))
         )}
@@ -243,7 +243,7 @@ export default function CircleScreen() {
             return (
               <View
                 key={session.id}
-                className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+                className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 dark:border-white/10 dark:bg-surface-dark-alt dark:shadow-none"
               >
                 <TouchableOpacity
                   disabled={active}

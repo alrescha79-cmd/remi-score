@@ -17,6 +17,34 @@ export async function exportAllData(): Promise<BackupPayload> {
   return serializeBackup({ circles, players, sessions, rounds, scores, session_players });
 }
 
+export async function exportCircleData(circleId: number): Promise<{
+  players: Player[];
+  sessions: Session[];
+  rounds: Round[];
+  scores: Score[];
+  session_players: BackupSessionPlayer[];
+}> {
+  const db = await getDb();
+  const [players, sessions] = await Promise.all([
+    db.getAllAsync<Player>('SELECT * FROM players WHERE circle_id = ?', circleId),
+    db.getAllAsync<Session>('SELECT * FROM sessions WHERE circle_id = ?', circleId),
+  ]);
+  const sessionIds = sessions.map((s) => s.id);
+  if (sessionIds.length === 0) {
+    return { players, sessions, rounds: [], scores: [], session_players: [] };
+  }
+  const placeholders = sessionIds.map(() => '?').join(',');
+  const [rounds, session_players] = await Promise.all([
+    db.getAllAsync<Round>(`SELECT * FROM rounds WHERE session_id IN (${placeholders})`, ...sessionIds),
+    db.getAllAsync<BackupSessionPlayer>(`SELECT * FROM session_players WHERE session_id IN (${placeholders})`, ...sessionIds),
+  ]);
+  const roundIds = rounds.map((r) => r.id);
+  const scores = roundIds.length > 0
+    ? await db.getAllAsync<Score>(`SELECT * FROM scores WHERE round_id IN (${roundIds.map(() => '?').join(',')})`, ...roundIds)
+    : [];
+  return { players, sessions, rounds, scores, session_players };
+}
+
 const TABLES: { table: string; cols: string[]; key: keyof BackupTables }[] = [
   { table: 'circles', cols: ['id', 'name', 'created_at'], key: 'circles' },
   { table: 'players', cols: ['id', 'name', 'circle_id', 'created_at'], key: 'players' },

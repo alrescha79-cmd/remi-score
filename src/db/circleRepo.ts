@@ -14,6 +14,20 @@ export async function renameCircle(id: number, name: string): Promise<void> {
 
 export async function deleteCircle(id: number): Promise<void> {
   const db = await getDb();
+  await db.runAsync(
+    'DELETE FROM scores WHERE round_id IN (SELECT r.id FROM rounds r JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ?)',
+    id
+  );
+  await db.runAsync(
+    'DELETE FROM rounds WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)',
+    id
+  );
+  await db.runAsync(
+    'DELETE FROM session_players WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)',
+    id
+  );
+  await db.runAsync('DELETE FROM sessions WHERE circle_id = ?', id);
+  await db.runAsync('DELETE FROM players WHERE circle_id = ?', id);
   await db.runAsync('DELETE FROM circles WHERE id = ?', id);
 }
 

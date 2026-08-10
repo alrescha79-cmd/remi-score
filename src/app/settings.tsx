@@ -1,11 +1,12 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { Text, TouchableOpacity, View } from 'react-native';
+import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import CloudSyncSection from '@/components/CloudSyncSection';
 import ScreenHeader from '@/components/ScreenHeader';
+import SheetSyncSection from '@/components/SheetSyncSection';
 import { useT } from '@/lib/i18n';
 import { useSettingsStore, type Lang, type ThemePref } from '@/store/settingsStore';
-import SheetSyncSection from '@/components/SheetSyncSection';
 
 const THEMES: { value: ThemePref; icon: keyof typeof Ionicons.glyphMap; key: string }[] = [
   { value: 'system', icon: 'phone-portrait-outline', key: 'settings.system' },
@@ -21,38 +22,42 @@ const LANGS: { value: Lang; label: string }[] = [
 export default function SettingsScreen() {
   const router = useRouter();
   const t = useT();
-  const { theme, setTheme, lang, setLang } = useSettingsStore();
+  const theme = useSettingsStore((s) => s.theme);
+  const setTheme = useSettingsStore((s) => s.setTheme);
+  const lang = useSettingsStore((s) => s.lang);
+  const setLang = useSettingsStore((s) => s.setLang);
 
   return (
     <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top', 'bottom']}>
       <ScreenHeader title={t('settings.title')} onBack={() => router.back()} />
 
-      <View className="flex-1 px-5">
+      <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
         <View className="mb-6 mt-2 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
           <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('settings.theme')}</Text>
           <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('settings.themeHint')}</Text>
-          <View className="flex-row rounded-xl bg-surface-fill p-1 dark:bg-surface-dark-fill">
+          <View className="flex-row rounded-xl bg-surface-fill p-1.5 dark:bg-surface-dark-fill">
             {THEMES.map((o) => {
               const active = theme === o.value;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={o.value}
                   onPress={() => setTheme(o.value)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2 ${
-                    active ? 'bg-surface-alt shadow-soft dark:bg-surface-dark-alt' : 'shadow-none'
+                  className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2.5 ${
+                    active ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                   }`}
                 >
                   <Ionicons
                     name={o.icon}
                     size={16}
-                    className={active ? 'text-accent dark:text-accent-dark' : 'text-ink-faint dark:text-ink-dark-faint'}
+                    color={active ? '#ffffff' : undefined}
+                    className={active ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}
                   />
-                  <Text className={`text-sm font-bold ${active ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
+                  <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
                     {t(o.key)}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
@@ -61,35 +66,37 @@ export default function SettingsScreen() {
         <View className="mb-6 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
           <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('settings.language')}</Text>
           <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('settings.langHint')}</Text>
-          <View className="flex-row rounded-xl bg-surface-fill p-1 dark:bg-surface-dark-fill">
+          <View className="flex-row rounded-xl bg-surface-fill p-1.5 dark:bg-surface-dark-fill">
             {LANGS.map((o) => {
               const active = lang === o.value;
               return (
-                <TouchableOpacity
+                <Pressable
                   key={o.value}
                   onPress={() => setLang(o.value)}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
-                  className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2 ${
-                    active ? 'bg-surface-alt shadow-soft dark:bg-surface-dark-alt' : 'shadow-none'
+                  className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2.5 ${
+                    active ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
                   }`}
                 >
                   <Ionicons
                     name="language-outline"
                     size={16}
-                    className={active ? 'text-accent dark:text-accent-dark' : 'text-ink-faint dark:text-ink-dark-faint'}
+                    color={active ? '#ffffff' : undefined}
+                    className={active ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}
                   />
-                  <Text className={`text-sm font-bold ${active ? 'text-ink dark:text-ink-dark' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
+                  <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
                     {o.label}
                   </Text>
-                </TouchableOpacity>
+                </Pressable>
               );
             })}
           </View>
         </View>
 
+        <CloudSyncSection />
         <SheetSyncSection />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
