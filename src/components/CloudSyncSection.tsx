@@ -121,6 +121,13 @@ export default function CloudSyncSection() {
     setTimeout(() => setCopied(false), 2000);
   }, [shareUrl]);
 
+  const handleCopyCode = useCallback(async () => {
+    if (!code) return;
+    await Clipboard.setStringAsync(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }, [code]);
+
   return (
     <View className="mb-6 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
       <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('cloud.title')}</Text>
@@ -177,18 +184,50 @@ export default function CloudSyncSection() {
             <View className="mt-3">
               {code ? (
                 <View>
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">
-                      {t('cloud.shareCode')}: <Text className="font-extrabold text-ink dark:text-ink-dark">{code}</Text>
+                  <TouchableOpacity
+                    onPress={handleCopyCode}
+                    accessibilityRole="button"
+                    accessibilityLabel={t('cloud.shareCode')}
+                    className="mt-2 rounded-2xl border-2 border-accent/40 bg-surface-fill p-4 dark:border-accent-dark/50 dark:bg-surface-dark-fill"
+                  >
+                    <Text className="text-center text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+                      {t('cloud.shareCode')}
                     </Text>
-                    <TouchableOpacity onPress={handleGenerate} hitSlop={8}>
-                      <Ionicons name="refresh-outline" size={16} className="text-accent dark:text-accent-dark" />
-                    </TouchableOpacity>
-                  </View>
+                    <Text className="mt-1.5 text-center text-3xl font-extrabold tracking-[0.35em] text-accent-deep dark:text-accent-dark-deep">
+                      {code.toUpperCase()}
+                    </Text>
+                    <View className="mt-2 flex-row items-center justify-center gap-1">
+                      <Ionicons
+                        name={copied ? 'checkmark' : 'copy-outline'}
+                        size={13}
+                        className={copied ? 'text-good dark:text-good-dark' : 'text-ink-muted dark:text-ink-dark-muted'}
+                      />
+                      <Text
+                        className={`text-xs font-bold ${
+                          copied
+                            ? 'text-good dark:text-good-dark'
+                            : 'text-ink-muted dark:text-ink-dark-muted'
+                        }`}
+                      >
+                        {copied ? t('cloud.copied') : t('cloud.tapToCopy')}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={handleGenerate}
+                    hitSlop={8}
+                    accessibilityRole="button"
+                    className="mt-2.5 flex-row items-center justify-center gap-1"
+                  >
+                    <Ionicons name="refresh-outline" size={14} className="text-ink-muted dark:text-ink-dark-muted" />
+                    <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">
+                      {t('cloud.regenerate')}
+                    </Text>
+                  </TouchableOpacity>
                   {shareUrl && (
                     <TouchableOpacity
                       onPress={handleCopy}
-                      className="mt-2 flex-row items-center gap-2 rounded-xl bg-surface-fill p-3 dark:bg-surface-dark-fill"
+                      className="mt-1 flex-row items-center gap-2 rounded-xl bg-surface-fill p-3 dark:bg-surface-dark-fill"
                     >
                       <Ionicons
                         name={copied ? 'checkmark-circle' : 'copy-outline'}
@@ -198,9 +237,6 @@ export default function CloudSyncSection() {
                       <Text className="flex-1 text-xs text-ink dark:text-ink-dark" numberOfLines={1}>
                         {shareUrl}
                       </Text>
-                      {copied && (
-                        <Text className="text-xs font-bold text-good dark:text-good-dark">{t('cloud.copied')}</Text>
-                      )}
                     </TouchableOpacity>
                   )}
                 </View>
