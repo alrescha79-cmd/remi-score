@@ -6,20 +6,27 @@ import {
 import type { CloudSnapshot, CloudSyncPayload } from './cloudSyncCore';
 import { translateForPush } from './cloudSyncCore';
 
-const TIMEOUT_MS = 15000;
+const TIMEOUT_MS = 10000;
 
-async function fetchJson(url: string, init?: RequestInit): Promise<{ status: number; body: any }> {
+function isEmptyJson(text: string): boolean {
+  return text.trim().length === 0;
+}
+
+async function fetchJsonOnce(url: string, init?: RequestInit): Promise<{ status: number; body: any }> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
     const res = await fetch(url, { ...init, signal: controller.signal });
     const text = await res.text();
     let body: any = {};
-    try {
-      body = JSON.parse(text);
-    } catch {
-      console.error('[CloudSync] Non-JSON response:', res.status, text.slice(0, 200));
-      throw new Error('cloud.badResponse');
+    if (!isEmptyJson(text)) {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        const head = text.slice(0, 200);
+        console.error('[CloudSync] Non-JSON response status', res.status, 'body:', head);
+        throw new Error('cloud.badResponse');
+      }
     }
     return { status: res.status, body };
   } catch (err) {
@@ -27,6 +34,26 @@ async function fetchJson(url: string, init?: RequestInit): Promise<{ status: num
     throw err;
   } finally {
     clearTimeout(timer);
+  }
+}
+
+/**
+ * Fetch JSON with one retry. Mobile networks and dual-stack (IPv4+IPv6)
+ * connections race or drop the first attempt; a single retry recovers both.
+ */
+async function fetchJson(url: string, init?: RequestInit): Promise<{ status: number; body: any }> {
+  try {
+    return await fetchJsonOnce(url, init);
+  } catch (first) {
+    const msg = first instanceof Error ? first.message : '';
+    // Do not retry semantic failures the server already answered.
+    for (const code of ['codeNotFound', 'invalidCode', 'badResponse']) {
+      if (msg.includes(code)) throw first;
+    }
+    // Timeout on a dual-stack (IPv4+IPv6) name usually means the device sat on
+    // dead IPv6; retry so IPv4 gets picked. 10s abort + retry = ~20s worst case.
+    console.log(`[CloudSync] Retrying (${msg}):`, url);
+    return await fetchJsonOnce(url, init);
   }
 }
 

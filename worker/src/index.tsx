@@ -1,4 +1,5 @@
 import { Hono } from 'hono';
+import { cors } from 'hono/cors';
 import {
   ensureSchema,
   getCircleByCode,
@@ -25,6 +26,8 @@ app.use('*', async (c, next) => {
   }
   await next();
 });
+
+app.use('/api/*', cors());
 
 app.get('/health', (c) => c.json({ ok: true }));
 
