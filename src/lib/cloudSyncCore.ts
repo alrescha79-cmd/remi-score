@@ -43,6 +43,23 @@ export interface CloudSnapshot {
   tables: SyncTables;
 }
 
+/** Server sends the five tables at the top level, not nested under `tables`. */
+export function decodeSnapshot(body: Record<string, unknown>): CloudSnapshot {
+  return {
+    shareCode: body.shareCode as string,
+    circleId: body.circleId as number,
+    circleName: body.circleName as string,
+    syncedAt: body.syncedAt as string,
+    tables: {
+      players: (body.players ?? []) as SyncTables['players'],
+      sessions: (body.sessions ?? []) as SyncTables['sessions'],
+      rounds: (body.rounds ?? []) as SyncTables['rounds'],
+      scores: (body.scores ?? []) as SyncTables['scores'],
+      session_players: (body.session_players ?? []) as SyncTables['session_players'],
+    },
+  };
+}
+
 export interface SyncIdMapEntry {
   table: SyncTableName;
   localId: number;

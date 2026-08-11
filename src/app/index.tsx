@@ -71,7 +71,8 @@ export default function HomeScreen() {
       refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'cloud.pullFailed';
-      setJoinError(msg.startsWith('cloud.') ? t(msg) : t('cloud.pullFailed'));
+      console.error('[HomeScreen] join failed:', msg);
+      setJoinError(msg.startsWith('cloud.') ? t(msg) : msg);
     } finally {
       setJoinBusy(false);
     }
@@ -113,7 +114,7 @@ export default function HomeScreen() {
             onPress={() => setJoinVisible(true)}
             accessibilityRole="button"
             accessibilityLabel={t('cloud.join')}
-            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-accent-soft dark:border-accent-dark/40 dark:bg-accent-dark-soft"
+            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-accent-soft dark:border-accent-dark/70 dark:bg-accent-dark-soft"
           >
             <Ionicons name="cloud-download-outline" size={20} className="text-accent dark:text-accent-dark" />
           </TouchableOpacity>
@@ -121,7 +122,7 @@ export default function HomeScreen() {
             onPress={() => router.push('/settings')}
             accessibilityRole="button"
             accessibilityLabel="Settings"
-            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/15 dark:bg-surface-dark-fill"
+            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/25 dark:bg-white/10"
           >
             <Ionicons name="settings-outline" size={20} className="text-ink dark:text-ink-dark" />
           </TouchableOpacity>
@@ -225,7 +226,7 @@ export default function HomeScreen() {
             <Text className="text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('cloud.join')}</Text>
             <Text className="mb-4 mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('cloud.joinHint')}</Text>
             <TextInput
-              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-center text-lg font-extrabold uppercase tracking-[0.3em] text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-left text-lg font-extrabold uppercase tracking-[0.3em] text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
               placeholder={t('cloud.codePlaceholder')}
               value={code}
               onChangeText={(v) => setCode(v.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 6))}

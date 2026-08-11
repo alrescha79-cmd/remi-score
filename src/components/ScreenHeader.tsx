@@ -20,7 +20,7 @@ export default function ScreenHeader({ title, subtitle, onBack, right, backLabel
           hitSlop={8}
           accessibilityRole="button"
           accessibilityLabel={backLabel ?? 'Back'}
-          className={`mr-3 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/15 dark:bg-surface-dark-fill ${
+          className={`mr-3 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/25 dark:bg-white/10 ${
             compact ? 'h-9 w-9' : 'h-11 w-11'
           }`}
         >

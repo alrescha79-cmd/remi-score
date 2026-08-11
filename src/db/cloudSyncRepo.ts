@@ -22,8 +22,16 @@ const COLS: Record<SyncTableName, string[]> = {
 
 export async function getAllTakenIds(): Promise<Record<SyncTableName, Set<number>>> {
   const db = await getDb();
-  const out = {} as Record<SyncTableName, Set<number>>;
+  const out = {
+    players: new Set(),
+    sessions: new Set(),
+    rounds: new Set(),
+    scores: new Set(),
+    session_players: new Set(),
+  } as Record<SyncTableName, Set<number>>;
+  // session_players is composite-keyed (no id column); skip its query.
   for (const table of TABLES) {
+    if (table === 'session_players') continue;
     const rows = await db.getAllAsync<{ id: number }>(`SELECT id FROM ${table}`);
     out[table] = new Set(rows.map((r) => r.id));
   }
