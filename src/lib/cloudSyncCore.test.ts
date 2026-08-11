@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { describe, it } from 'node:test';
 import {
+  decodeSnapshot,
   generateShareCode,
   mergeSnapshots,
   translateForPush,
@@ -83,6 +84,37 @@ describe('validateShareCode', () => {
     assert.ok(!validateShareCode('ABC234'));
     assert.ok(!validateShareCode('abc23!'));
     assert.ok(!validateShareCode('ab c23'));
+  });
+});
+
+describe('decodeSnapshot', () => {
+  it('reads the five tables from the top level (server shape)', () => {
+    const out = decodeSnapshot({
+      shareCode: 'gvqxda',
+      circleId: 2,
+      circleName: 'Kopek',
+      syncedAt: '2026-08-10T10:42:35.343Z',
+      players: [player(6, 'Ipan')],
+      sessions: [session(3, null)],
+      rounds: [round(7, 3, 1)],
+      scores: [score(25, 7, 6, 10)],
+      session_players: [sp(3, 6)],
+    });
+    assert.equal(out.shareCode, 'gvqxda');
+    assert.equal(out.circleId, 2);
+    assert.equal(out.tables.players.length, 1);
+    assert.equal(out.tables.players[0].name, 'Ipan');
+    assert.equal(out.tables.sessions[0].id, 3);
+    assert.equal(out.tables.rounds[0].session_id, 3);
+    assert.equal(out.tables.scores[0].player_id, 6);
+    assert.equal(out.tables.session_players.length, 1);
+  });
+
+  it('defaults missing tables to empty arrays', () => {
+    const out = decodeSnapshot({ shareCode: 'a', circleId: 1, circleName: '', syncedAt: 'x' });
+    for (const t of ['players', 'sessions', 'rounds', 'scores', 'session_players'] as const) {
+      assert.deepEqual(out.tables[t], []);
+    }
   });
 });
 

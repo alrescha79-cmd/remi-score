@@ -4,7 +4,7 @@ import {
   syncCircleFromSnapshot,
 } from '../db/cloudSyncRepo';
 import type { CloudSnapshot, CloudSyncPayload } from './cloudSyncCore';
-import { translateForPush } from './cloudSyncCore';
+import { decodeSnapshot, translateForPush } from './cloudSyncCore';
 
 const TIMEOUT_MS = 10000;
 
@@ -80,13 +80,7 @@ export async function pullCloudSync(url: string, code: string): Promise<CloudSna
   if (status === 404) throw new Error('cloud.codeNotFound');
   if (status === 400) throw new Error('cloud.invalidCode');
   if (!body?.ok) throw new Error(body?.error ?? 'cloud.badResponse');
-  return {
-    shareCode: body.shareCode,
-    circleId: body.circleId,
-    circleName: body.circleName,
-    syncedAt: body.syncedAt,
-    tables: body.tables,
-  };
+  return decodeSnapshot(body);
 }
 
 export async function testCloudConnection(url: string): Promise<void> {
