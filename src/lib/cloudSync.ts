@@ -127,7 +127,7 @@ export async function syncCircleToCloud(opts: SyncCircleOptions): Promise<void> 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
     try {
       const snapshot = await pullCloudSync(url, shareCode);
-      await syncCircleFromSnapshot(circleId, snapshot);
+      await syncCircleFromSnapshot(circleId, snapshot, lastSyncedAt);
       lastSyncedAt = snapshot.syncedAt;
       opts.setLastSyncedAt(lastSyncedAt);
     } catch (e) {

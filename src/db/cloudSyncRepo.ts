@@ -122,13 +122,27 @@ async function alignSequences(db: SQLiteDatabase, tables: SyncTables): Promise<v
 /**
  * Merge a remote snapshot into a local circle (fresh join or pull). Returns
  * the merge result so the caller can update the persisted sync metadata.
+ *
+ * @param baseSyncedAt  syncedAt value before this pull. When `snapshot.syncedAt`
+ * equals `baseSyncedAt` the remote hasn't changed since our last sync, so any
+ * local-vs-remote difference is a local edit that must win on push.
  */
-export async function syncCircleFromSnapshot(localCircleId: number, snapshot: CloudSnapshot): Promise<MergeResult> {
+export async function syncCircleFromSnapshot(
+  localCircleId: number,
+  snapshot: CloudSnapshot,
+  baseSyncedAt: string | null
+): Promise<MergeResult> {
   const db = await getDb();
   const local = (await exportCircleData(localCircleId)) as unknown as SyncTables;
   const pushMap = await getPushMap();
   const takenIds = await getAllTakenIds();
-  const merged = mergeSnapshots({ local, remote: snapshot.tables, pushMap, takenIds });
+  const merged = mergeSnapshots({
+    local,
+    remote: snapshot.tables,
+    pushMap,
+    takenIds,
+    remoteChanged: snapshot.syncedAt !== baseSyncedAt,
+  });
 
   await db.withTransactionAsync(async () => {
     await writeTables(db, localCircleId, merged.tables);

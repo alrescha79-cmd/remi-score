@@ -55,6 +55,7 @@ function input(over: Partial<MergeInput>): MergeInput {
       scores: new Set(),
       session_players: new Set(),
     },
+    remoteChanged: false,
     ...over,
   };
 }
@@ -166,16 +167,54 @@ describe('mergeSnapshots', () => {
     assert.equal(out.players[0].name, 'Andi');
   });
 
-  it('keeps BOTH entities when same id has different content (id collision)', () => {
+  it('local wins when content differs and remote unchanged since last sync (remoteChanged=false)', () => {
     const local = tables({ players: [player(1, 'Andi')] });
     const remote = tables({ players: [player(1, 'Budi')] });
-    const { tables: out, pushMap } = mergeSnapshots(input({ local, remote }));
-    assert.equal(out.players.length, 2);
-    const localRow = out.players.find((p) => p.name === 'Andi')!;
-    const remoteRow = out.players.find((p) => p.name === 'Budi')!;
-    assert.equal(remoteRow.id, 1);
-    assert.notEqual(localRow.id, 1);
-    assert.deepEqual(pushMap, [{ table: 'players', localId: localRow.id, remoteId: 1 }]);
+    const { tables: out, pushMap } = mergeSnapshots(input({ local, remote, remoteChanged: false }));
+    assert.equal(out.players.length, 1);
+    assert.equal(out.players[0].name, 'Andi');
+    assert.deepEqual(pushMap, []);
+  });
+
+  it('remote wins when remote changed since last sync (remoteChanged=true)', () => {
+    const local = tables({ players: [player(1, 'Andi')] });
+    const remote = tables({ players: [player(1, 'Budi')] });
+    const { tables: out, pushMap } = mergeSnapshots(input({ local, remote, remoteChanged: true }));
+    assert.equal(out.players.length, 1);
+    assert.equal(out.players[0].name, 'Budi');
+    assert.deepEqual(pushMap, []);
+  });
+
+  it('completed session always beats active even when remote changed', () => {
+    const local = tables({ sessions: [session(1, null, 'completed')] });
+    const remote = tables({ sessions: [session(1, null, 'active')] });
+    const { tables: out } = mergeSnapshots(input({ local, remote, remoteChanged: true }));
+    assert.equal(out.sessions.length, 1);
+    assert.equal(out.sessions[0].status, 'completed');
+  });
+
+  it('different circle_id + timestamp format do NOT cause doubling', () => {
+    const local = tables({ players: [{ id: 1, name: 'Ipan', circle_id: 1, created_at: '2026-08-08 13:27:37' }] });
+    const remote = tables({ players: [{ id: 1, name: 'Ipan', circle_id: 2, created_at: '2026-08-08T13:27:37.000Z' }] });
+    const { tables: out } = mergeSnapshots(input({ local, remote, remoteChanged: true }));
+    assert.equal(out.players.length, 1, 'must not duplicate player due to circle_id or timestamp format');
+  });
+
+  it('translateForPush never emits duplicate ids after merge conflict', () => {
+    const local = tables({
+      players: [player(1, 'Andi'), player(2, 'Budi')],
+      sessions: [session(1, null, 'completed')],
+    });
+    const remote = tables({
+      players: [player(1, 'Andi'), player(2, 'Bambang')],
+      sessions: [session(1, null, 'active')],
+    });
+    const { tables: merged } = mergeSnapshots(input({ local, remote, remoteChanged: true }));
+    const pushed = translateForPush(merged, [], 2);
+    const playerIds = pushed.players.map((p) => p.id as number);
+    const sessionIds = pushed.sessions.map((s) => s.id as number);
+    assert.equal(new Set(playerIds).size, playerIds.length, 'no duplicate player ids');
+    assert.equal(new Set(sessionIds).size, sessionIds.length, 'no duplicate session ids');
   });
 
   it('remaps a remote id already taken by another local circle', () => {

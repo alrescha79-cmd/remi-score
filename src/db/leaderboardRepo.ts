@@ -10,7 +10,7 @@ export async function getSeasonStats(circleId: number): Promise<SeasonPlayerStat
     `
     SELECT p.*,
       COALESCE(SUM(s.score_change), 0) AS total,
-      COUNT(DISTINCT r.session_id) AS sessions
+      COUNT(DISTINCT CASE WHEN s.score_change != 0 THEN r.session_id END) AS sessions
     FROM players p
     LEFT JOIN scores s ON s.player_id = p.id
     LEFT JOIN rounds r ON s.round_id = r.id
