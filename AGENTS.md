@@ -20,10 +20,16 @@
 - All DB access through `src/db/*Repo` (circleRepo, playerRepo, sessionRepo, leaderboardRepo).
 - Zustand stores in `src/store/`, persisted to `expo-sqlite/kv-store`. **Persist rehydrates async** — do not initialize component state from a store value on first render; read the store directly (see `SheetSyncSection`).
 
-## UI conventions
+## UI & Theme Conventions (Slate Edge Brutalist)
 
-- NativeWind/Tailwind v3. Dark mode via `dark:` variants. Custom colors in `tailwind.config.js`: `accent` (#0071e3), `good`, `bad`, `surface*`, `ink*`. `accent-dark` has only `soft` (no DEFAULT).
-- i18n: dictionary in `src/lib/i18n.ts`. Every key must exist in **both** `en` and `id` records. UI errors are thrown as i18n key strings (`'sync.timeout'`) and translated via `t()`.
+- **NativeWind Theme & Styling Traps**:
+  - **DO NOT use `dark:` variants or dynamic template literals in `className`** (`className={`... ${active ? 'a' : 'b'}`}`) — NativeWind babel plugin fails to extract dynamic classes and `dark:` variants do not update on runtime theme switch.
+  - **Always use `useThemeColor()` hook + `style` prop** for all theme colors (`bg`, `surface`, `surfaceElevated`, `ink`, `inkMuted`, `inkFaint`, `border`, `primary`, `good`, `bad`, `primaryInk`, `goodInk`, `badInk`).
+  - `useThemeColor()` subscribes to `useSettingsStore((s) => s.theme)` so theme selection in Settings updates all components instantly without relying on system `useColorScheme()`.
+  - `className` on `<Ionicons>` does NOT work — pass `color` prop directly.
+  - Opacity classes like `bg-primary/10` fail in NativeWind — use `surfaceElevated` token or `style={{ opacity }}`.
+  - **Stack Navigator White Flash**: Always set `contentStyle: { backgroundColor: bg }` on `<Stack screenOptions={{ ... }}>` in `_layout.tsx` to prevent default white background flashing during navigation screen transitions in dark mode.
+- **i18n**: dictionary in `src/lib/i18n.ts`. Every key must exist in **both** `en` and `id` records. Components use `useT()` hook (subscribes to `useSettingsStore((s) => s.lang)`) for instant language toggle. UI errors are thrown as i18n key strings (`'sync.timeout'`) and translated via `t()`.
 
 ## Release (GitHub Actions)
 

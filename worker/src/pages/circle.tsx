@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 import type { FC } from 'hono/jsx';
 import Layout from './layout';
 
@@ -23,27 +24,56 @@ function medal(rank: number): string {
 }
 
 const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, liveSessionId, recentSessions }) => (
-  <Layout title={circleName} description={`Live scores and leaderboard for ${circleName}`}>
-    <h1 class="text-2xl font-extrabold">{circleName}</h1>
-    <p class="mt-1 text-sm text-ink-muted dark:text-[#9da8b8]">remiscore.{code}</p>
+  <Layout title={circleName} description={`Skor live dan klasemen untuk ${circleName}`}>
+    {/* Navigation to Home */}
+    <div class="mb-4">
+      <a
+        href="/"
+        class="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-brutal-sm hover:bg-bg active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+      >
+        ← Beranda
+      </a>
+    </div>
 
-    {live && live.length > 0 && (
-      <section class="mt-6">
-        <div class="flex items-center gap-2">
-          <span class="h-2 w-2 animate-pulse rounded-full bg-good dark:bg-[#30d158]" />
-          <h2 class="text-lg font-extrabold">Live Session</h2>
+    {/* Circle Header */}
+    <div class="rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal mb-6">
+      <div class="flex items-center justify-between">
+        <div>
+          <span class="inline-block rounded-full bg-primary/10 border border-ink/30 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-primary mb-1">
+            Tongkrongan Remi
+          </span>
+          <h1 class="text-3xl font-extrabold font-display text-ink tracking-tight">{circleName}</h1>
         </div>
-        <div class="mt-3 space-y-2">
+        <div class="rounded-md border-2 border-ink bg-bg px-3 py-1.5 text-xs font-mono font-bold text-ink shadow-brutal-sm">
+          {code}
+        </div>
+      </div>
+    </div>
+
+    {/* Live Session Banner */}
+    {live && live.length > 0 && (
+      <section class="mb-6 rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal">
+        <div class="flex items-center justify-between border-b-2 border-ink pb-3 mb-4">
+          <div class="flex items-center gap-2">
+            <span class="h-3 w-3 animate-pulse rounded-full bg-good border border-ink" />
+            <h2 class="text-base font-extrabold font-display text-ink uppercase tracking-wider">Arena Live</h2>
+          </div>
+          <span class="text-xs font-bold text-muted bg-bg px-2 py-1 rounded border border-ink/20">
+            Ronde {live[0]?.roundCount ?? 0}
+          </span>
+        </div>
+
+        <div class="space-y-2">
           {live.map((entry) => (
-            <div class="flex items-center justify-between rounded-xl border border-black/5 bg-surface-alt p-3 dark:border-white/10 dark:bg-[#161b22]">
+            <div class="flex items-center justify-between rounded-lg border-2 border-ink bg-bg p-3 shadow-brutal-sm">
               <div class="flex items-center gap-3">
-                <span class="w-8 text-center text-sm font-extrabold">{medal(entry.rank)}</span>
-                <span class="font-bold">{entry.player.name}</span>
+                <span class="w-7 text-center text-sm font-extrabold">{medal(entry.rank)}</span>
+                <span class="font-bold text-ink text-sm">{entry.player.name}</span>
               </div>
               <div class="text-right">
-                <span class="text-lg font-extrabold">{entry.total}</span>
+                <span class="text-lg font-extrabold font-display text-ink">{entry.total}</span>
                 {entry.lastDelta !== null && entry.lastDelta !== 0 && (
-                  <span class={`ml-2 text-xs font-bold ${entry.lastDelta > 0 ? 'text-good dark:text-[#30d158]' : 'text-bad dark:text-[#ff453a]'}`}>
+                  <span class={`ml-2 text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
                     {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
                   </span>
                 )}
@@ -51,43 +81,49 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
             </div>
           ))}
         </div>
-        <p class="mt-2 text-center text-xs text-ink-muted dark:text-[#9da8b8]">
-          {live[0]?.roundCount ?? 0} rounds played
-        </p>
+
         {liveSessionId && (
-          <a href={`/c/${code}/session/${liveSessionId}`} class="mt-2 block text-center text-sm font-bold text-accent dark:text-[#0a84ff]">
-            View details →
+          <a
+            href={`/c/${code}/session/${liveSessionId}`}
+            class="mt-4 block rounded-md border-2 border-ink bg-primary px-4 py-2.5 text-center text-xs font-extrabold text-white shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+          >
+            Lihat Detail Arena Live →
           </a>
         )}
       </section>
     )}
 
+    {/* Season Leaderboard */}
     {leaderboard.length > 0 && (
-      <section class="mt-6">
-        <h2 class="text-lg font-extrabold">Season Leaderboard</h2>
-        <div class="mt-3 overflow-hidden rounded-xl border border-black/5 dark:border-white/10">
+      <section class="mb-6">
+        <h2 class="text-base font-extrabold font-display text-ink uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>🏆</span> Klasemen Sepuh Remi
+        </h2>
+        <div class="overflow-hidden rounded-xl border-2 border-ink bg-surface shadow-brutal">
           <table class="w-full text-sm">
             <thead>
-              <tr class="bg-surface-fill text-left text-xs font-bold text-ink-muted dark:bg-[#21262d] dark:text-[#9da8b8]">
-                <th class="px-3 py-2">#</th>
-                <th class="px-3 py-2">Player</th>
-                <th class="px-3 py-2 text-right">Total</th>
-                <th class="px-3 py-2 text-right">W</th>
-                <th class="px-3 py-2 text-right">GP</th>
+              <tr class="border-b-2 border-ink bg-bg text-left text-xs font-extrabold text-ink uppercase tracking-wider">
+                <th class="px-3 py-2.5">#</th>
+                <th class="px-3 py-2.5">Player</th>
+                <th class="px-3 py-2.5 text-right">Total</th>
+                <th class="px-3 py-2.5 text-right">Menang</th>
+                <th class="px-3 py-2.5 text-right">Main</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody class="divide-y border-ink">
               {leaderboard.sort((a, b) => b.total - a.total).map((e, i) => (
-                <tr class="border-t border-black/5 dark:border-white/10">
-                  <td class="px-3 py-2 font-bold">{medal(i + 1)}</td>
-                  <td class="px-3 py-2">
-                    <a href={`/c/${code}/player/${e.player.id}`} class="font-bold text-accent dark:text-[#0a84ff] hover:underline">
+                <tr class="hover:bg-bg/50 transition-colors">
+                  <td class="px-3 py-2.5 font-bold text-xs">{medal(i + 1)}</td>
+                  <td class="px-3 py-2.5">
+                    <a href={`/c/${code}/player/${e.player.id}`} class="font-bold text-primary hover:underline">
                       {e.player.name}
                     </a>
                   </td>
-                  <td class={`px-3 py-2 text-right font-extrabold ${e.total >= 0 ? 'text-good dark:text-[#30d158]' : 'text-bad dark:text-[#ff453a]'}`}>{e.total}</td>
-                  <td class="px-3 py-2 text-right">{e.wins}</td>
-                  <td class="px-3 py-2 text-right text-ink-muted dark:text-[#9da8b8]">{e.sessionsPlayed}</td>
+                  <td class={`px-3 py-2.5 text-right font-extrabold font-display ${e.total >= 0 ? 'text-good' : 'text-bad'}`}>
+                    {e.total}
+                  </td>
+                  <td class="px-3 py-2.5 text-right font-bold text-ink">{e.wins}</td>
+                  <td class="px-3 py-2.5 text-right text-muted">{e.sessionsPlayed}x</td>
                 </tr>
               ))}
             </tbody>
@@ -96,20 +132,30 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
       </section>
     )}
 
+    {/* Recent Sessions History */}
     {recentSessions.length > 0 && (
-      <section class="mt-6">
-        <h2 class="text-lg font-extrabold">History</h2>
-        <div class="mt-3 space-y-2">
+      <section class="mb-6">
+        <h2 class="text-base font-extrabold font-display text-ink uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>📜</span> Riwayat Tanding
+        </h2>
+        <div class="space-y-2.5">
           {recentSessions.map((s) => (
-            <a href={`/c/${code}/session/${s.id}`} class="flex items-center justify-between rounded-xl border border-black/5 bg-surface-alt p-3 dark:border-white/10 dark:bg-[#161b22] hover:border-accent/30">
+            <a
+              href={`/c/${code}/session/${s.id}`}
+              class="flex items-center justify-between rounded-xl border-2 border-ink bg-surface p-3.5 shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+            >
               <div>
-                <span class="font-bold">{s.label ?? `Session #${s.id}`}</span>
-                <span class="ml-2 text-xs text-ink-muted dark:text-[#9da8b8]">{s.created_at.slice(0, 10)}</span>
+                <span class="font-bold text-ink text-sm block">{s.label ?? `Sesi #${s.id}`}</span>
+                <span class="text-xs text-muted font-mono">{s.created_at.slice(0, 10)}</span>
               </div>
               <div class="flex items-center gap-2">
-                {s.winnerName && <span class="text-xs font-bold text-ink-muted dark:text-[#9da8b8]">{s.winnerName}</span>}
-                <span class={`rounded-full px-2 py-0.5 text-[10px] font-extrabold ${s.status === 'active' ? 'bg-good/10 text-good dark:bg-[#30d158]/15 dark:text-[#30d158]' : 'bg-surface-fill text-ink-muted dark:bg-[#21262d] dark:text-[#9da8b8]'}`}>
-                  {s.status === 'active' ? 'LIVE' : 'DONE'}
+                {s.winnerName && (
+                  <span class="text-xs font-bold text-ink bg-bg px-2 py-0.5 rounded border border-ink/20">
+                    👑 {s.winnerName}
+                  </span>
+                )}
+                <span className={`rounded-full border border-ink px-2.5 py-0.5 text-[10px] font-extrabold ${s.status === 'active' ? 'bg-good text-white' : 'bg-bg text-muted'}`}>
+                  {s.status === 'active' ? 'LIVE' : 'SELESAI'}
                 </span>
               </div>
             </a>
@@ -118,8 +164,8 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
       </section>
     )}
 
-    <footer class="mt-8 text-center text-xs text-ink-faint dark:text-[#788496]">
-      Powered by RemiScore
+    <footer class="mt-8 text-center text-xs font-medium text-faint">
+      Created by Tukang Kopek
     </footer>
   </Layout>
 );

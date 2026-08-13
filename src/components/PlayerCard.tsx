@@ -2,6 +2,7 @@ import Ionicons from '@expo/vector-icons/Ionicons';
 import { Text, TouchableOpacity, View } from 'react-native';
 import { useT } from '../lib/i18n';
 import { formatSignedScore } from '../lib/score';
+import { useThemeColor } from '@/lib/theme';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
@@ -17,42 +18,47 @@ interface Props {
 export default function PlayerCard({ rank, name, total, delta, roundNumber, onPress }: Props) {
   const t = useT();
   const isMedal = rank >= 1 && rank <= 3;
-  const totalColor =
-    total > 0
-      ? 'text-good dark:text-good-dark'
-      : total < 0
-        ? 'text-bad dark:text-bad-dark'
-        : 'text-ink-muted dark:text-ink-dark-muted';
+
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const good = useThemeColor('good');
+  const bad = useThemeColor('bad');
+
+  const totalColor = total > 0 ? good : total < 0 ? bad : inkMuted;
 
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={!onPress}
       accessibilityRole="button"
-      className="flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 shadow-soft active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+      className="flex-row items-center rounded-brutal-lg border-2 px-4 py-4 shadow-brutal-1 active:opacity-80"
+      style={{ borderColor: border, backgroundColor: surface }}
     >
       <View className="mr-3 w-9 items-center">
         {isMedal ? (
           <Ionicons name="medal" size={26} color={MEDALS[rank - 1]} />
         ) : (
-          <View className="h-8 w-8 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
-            <Text className="text-sm font-bold tabular-nums text-ink-muted dark:text-ink-dark-muted">{rank}</Text>
+          <View className="h-8 w-8 items-center justify-center rounded-full border" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+            <Text className="text-sm font-bold tabular-nums" style={{ color: inkMuted }}>{rank}</Text>
           </View>
         )}
       </View>
 
       <View className="min-w-0 flex-1">
-        <Text className="text-base font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
+        <Text className="text-base font-bold" style={{ color: ink }} numberOfLines={1}>
           {name}
         </Text>
         {delta != null && roundNumber != null && (
-          <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">
+          <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>
             {t('session.roundLabel', { n: roundNumber })}: {formatSignedScore(delta)}
           </Text>
         )}
       </View>
 
-      <Text className={`text-xl font-extrabold tabular-nums ${totalColor}`}>{formatSignedScore(total)}</Text>
+      <Text className="text-xl font-extrabold tabular-nums" style={{ color: totalColor }}>{formatSignedScore(total)}</Text>
     </TouchableOpacity>
   );
 }

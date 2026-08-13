@@ -61,3 +61,7 @@ example
 # worker
 worker/node_modules/
 worker/.wrangler/
+
+#etc
+.hallmark/
+docs/

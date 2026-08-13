@@ -6,6 +6,7 @@ import { parseBackup } from '@/lib/backupCore';
 import { fetchBackup, pushBackup, testConnection } from '@/lib/sheetSync';
 import { formatDateTime } from '@/lib/format';
 import { t, useT } from '@/lib/i18n';
+import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore } from '@/store/settingsStore';
 import ConfirmDialog, { type ConfirmDialogOptions } from './ConfirmDialog';
 
@@ -24,6 +25,17 @@ export default function SheetSyncSection() {
   const setSheetWebhookUrl = useSettingsStore((s) => s.setSheetWebhookUrl);
   const lastSyncAt = useSettingsStore((s) => s.lastSyncAt);
   const setLastSyncAt = useSettingsStore((s) => s.setLastSyncAt);
+
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const surface = useThemeColor('surface');
+  const primary = useThemeColor('primary');
+  const primaryInk = useThemeColor('primaryInk');
+  const good = useThemeColor('good');
+  const bad = useThemeColor('bad');
+  const inkFaint = useThemeColor('inkFaint');
+
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
@@ -116,11 +128,11 @@ export default function SheetSyncSection() {
   const busyTest = busy === 'test';
 
   return (
-    <View className="mb-6 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
-      <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('settings.sheets')}</Text>
-      <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('settings.sheetsHint')}</Text>
+    <View className="mb-6 rounded-brutal-lg border-2 p-4 shadow-brutal-1" style={{ borderColor: border, backgroundColor: surface }}>
+      <Text className="text-sm font-extrabold" style={{ color: ink }}>{t('settings.sheets')}</Text>
+      <Text className="mb-3 mt-0.5 text-xs" style={{ color: inkMuted }}>{t('settings.sheetsHint')}</Text>
 
-      <View className="flex-row items-center rounded-xl bg-surface-fill dark:bg-surface-dark-fill">
+      <View className="flex-row items-center rounded-brutal border-2" style={{ borderColor: border }}>
         <TextInput
           value={sheetWebhookUrl}
           onChangeText={(v) => setSheetWebhookUrl(v.trim())}
@@ -128,7 +140,9 @@ export default function SheetSyncSection() {
           autoCapitalize="none"
           autoCorrect={false}
           keyboardType="url"
-          className="flex-1 px-4 py-4 text-sm text-ink placeholder:text-ink-faint dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+          className="flex-1 px-4 py-4 text-sm"
+          style={{ color: ink }}
+          placeholderTextColor={inkFaint}
         />
         {sheetWebhookUrl.length > 0 && (
           <TouchableOpacity
@@ -137,7 +151,7 @@ export default function SheetSyncSection() {
             hitSlop={8}
             className="px-4 py-4"
           >
-            <Ionicons name="close-circle" size={18} className="text-ink-faint dark:text-ink-dark-faint" />
+            <Ionicons name="close-circle" size={18} color={inkFaint} />
           </TouchableOpacity>
         )}
       </View>
@@ -145,8 +159,8 @@ export default function SheetSyncSection() {
       {sheetWebhookUrl !== '' && (
         <View className="mt-2 flex-row items-center justify-between">
           <View className="flex-row items-center gap-1">
-            <Ionicons name="checkmark-circle" size={13} className="text-good dark:text-good-dark" />
-            <Text className="text-xs text-good dark:text-good-dark">{t('sync.urlSaved')}</Text>
+            <Ionicons name="checkmark-circle" size={13} color={good} />
+            <Text className="text-xs" style={{ color: good }}>{t('sync.urlSaved')}</Text>
           </View>
           <TouchableOpacity
             onPress={handleTest}
@@ -155,11 +169,11 @@ export default function SheetSyncSection() {
             className="flex-row items-center gap-1"
           >
             {busyTest ? (
-              <ActivityIndicator size="small" color="#0071e3" />
+              <ActivityIndicator size="small" color={primary} />
             ) : (
-              <Ionicons name="link-outline" size={13} className="text-accent dark:text-accent-dark" />
+              <Ionicons name="link-outline" size={13} color={primary} />
             )}
-            <Text className="text-xs font-bold text-accent-deep dark:text-accent-dark-deep">
+            <Text className="text-xs font-bold" style={{ color: primary }}>
               {busyTest ? t('sync.testing') : t('sync.test')}
             </Text>
           </TouchableOpacity>
@@ -171,16 +185,15 @@ export default function SheetSyncSection() {
           onPress={handleExport}
           disabled={busy != null}
           accessibilityRole="button"
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-full py-3 ${
-            busy ? 'opacity-60' : 'opacity-100'
-          } bg-accent dark:bg-accent-dark`}
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-brutal border-2 py-3 shadow-brutal-1"
+          style={{ borderColor: border, backgroundColor: primary, opacity: busy ? 0.6 : 1 }}
         >
           {busyExport ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+            <ActivityIndicator size="small" color={primaryInk} />
           ) : (
-            <Ionicons name="cloud-upload-outline" size={16} color="#ffffff" />
+            <Ionicons name="cloud-upload-outline" size={16} color={primaryInk} />
           )}
-          <Text className="text-sm font-extrabold text-white">
+          <Text className="text-sm font-extrabold" style={{ color: primaryInk }}>
             {busyExport ? t('sync.exporting') : t('sync.export')}
           </Text>
         </TouchableOpacity>
@@ -189,26 +202,27 @@ export default function SheetSyncSection() {
           onPress={handleImport}
           disabled={busy != null}
           accessibilityRole="button"
-          className="flex-1 flex-row items-center justify-center gap-2 rounded-full border border-accent/40 py-3 dark:border-accent-dark/40"
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-brutal border-2 py-3"
+          style={{ borderColor: border }}
         >
           {busyImport ? (
-            <ActivityIndicator size="small" color="#0071e3" />
+            <ActivityIndicator size="small" color={primary} />
           ) : (
-            <Ionicons name="cloud-download-outline" size={16} className="text-accent dark:text-accent-dark" />
+            <Ionicons name="cloud-download-outline" size={16} color={primary} />
           )}
-          <Text className="text-sm font-extrabold text-accent-deep dark:text-accent-dark-deep">
+          <Text className="text-sm font-extrabold" style={{ color: primary }}>
             {busyImport ? t('sync.importing') : t('sync.import')}
           </Text>
         </TouchableOpacity>
       </View>
 
-      {error != null && <Text className="mt-2 text-xs text-bad dark:text-bad-dark">{error}</Text>}
+      {error != null && <Text className="mt-2 text-xs" style={{ color: bad }}>{error}</Text>}
       {done && error == null && (
-        <Text className="mt-2 text-xs text-good dark:text-good-dark">
+        <Text className="mt-2 text-xs" style={{ color: good }}>
           {doneAction === 'test' ? t('sync.testOk') : t('sync.success')}
         </Text>
       )}
-      <Text className="mt-2 text-xs text-ink-muted dark:text-ink-dark-muted">
+      <Text className="mt-2 text-xs" style={{ color: inkMuted }}>
         {lastSyncAt ? t('sync.lastSync', { date: formatDateTime(lastSyncAt) }) : t('sync.never')}
       </Text>
 

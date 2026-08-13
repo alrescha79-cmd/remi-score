@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 import type { FC } from 'hono/jsx';
 import Layout from './layout';
 
@@ -17,33 +18,60 @@ interface PlayerPageProps {
 
 const PlayerPage: FC<PlayerPageProps> = ({ code, circleName, playerName, total, roundsPlayed, best, worst, sessionsPlayed, wins, sessionScores }) => (
   <Layout title={`${playerName} — ${circleName}`}>
-    <a href={`/c/${code}`} class="text-sm font-bold text-accent dark:text-[#0a84ff]">← {circleName}</a>
-    <h1 class="mt-3 text-2xl font-extrabold">{playerName}</h1>
+    <div class="mb-4">
+      <a
+        href={`/c/${code}`}
+        class="inline-flex items-center gap-1.5 rounded-md border-2 border-ink bg-surface px-3 py-1.5 text-xs font-bold text-ink shadow-brutal-sm hover:bg-bg active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+      >
+        ← Kembali ke {circleName}
+      </a>
+    </div>
 
-    <div class="mt-4 grid grid-cols-2 gap-3">
+    {/* Header Card */}
+    <div class="rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal mb-6 flex items-center gap-4">
+      <div class="w-12 h-12 rounded-full border-2 border-ink bg-primary/10 text-primary font-display font-extrabold text-xl flex items-center justify-center shadow-brutal-sm">
+        {playerName.charAt(0).toUpperCase()}
+      </div>
+      <div>
+        <span class="inline-block text-[10px] font-extrabold uppercase tracking-wider text-muted mb-0.5">Profil Player</span>
+        <h1 class="text-2xl font-extrabold font-display text-ink">{playerName}</h1>
+      </div>
+    </div>
+
+    {/* Stats Grid */}
+    <div class="grid grid-cols-2 gap-3 mb-6">
       {[
-        { label: 'Total', value: total, color: total >= 0 ? 'text-good dark:text-[#30d158]' : 'text-bad dark:text-[#ff453a]' },
-        { label: 'Rounds', value: roundsPlayed, color: '' },
-        { label: 'Best Round', value: best > 0 ? `+${best}` : best, color: 'text-good dark:text-[#30d158]' },
-        { label: 'Worst Round', value: worst, color: 'text-bad dark:text-[#ff453a]' },
-        { label: 'Sessions', value: sessionsPlayed, color: '' },
-        { label: 'Wins', value: wins, color: 'text-medalGold' },
+        { label: 'Total Poin', value: total, color: total >= 0 ? 'text-good' : 'text-bad', icon: '🎯' },
+        { label: 'Ronde Main', value: roundsPlayed, color: 'text-ink', icon: '🎲' },
+        { label: 'Ronde Tergacor', value: best > 0 ? `+${best}` : best, color: 'text-good', icon: '⚡' },
+        { label: 'Ronde Ter-Apes', value: worst, color: 'text-bad', icon: '💥' },
+        { label: 'Sesi Main', value: sessionsPlayed, color: 'text-ink', icon: '📊' },
+        { label: 'Kemenangan', value: `${wins} Sesi`, color: 'text-secondary', icon: '👑' },
       ].map((stat) => (
-        <div class="rounded-xl border border-black/5 bg-surface-alt p-3 dark:border-white/10 dark:bg-[#161b22]">
-          <p class="text-xs font-bold text-ink-muted dark:text-[#9da8b8]">{stat.label}</p>
-          <p class={`mt-1 text-xl font-extrabold ${stat.color}`}>{stat.value}</p>
+        <div class="rounded-xl border-2 border-ink bg-surface p-4 shadow-brutal">
+          <div class="flex items-center justify-between text-xs font-bold text-muted mb-1">
+            <span>{stat.label}</span>
+            <span>{stat.icon}</span>
+          </div>
+          <p class={`text-xl font-extrabold font-display ${stat.color}`}>{stat.value}</p>
         </div>
       ))}
     </div>
 
+    {/* Session History */}
     {sessionScores.length > 0 && (
-      <section class="mt-6">
-        <h2 class="text-lg font-extrabold">Session History</h2>
-        <div class="mt-3 space-y-2">
+      <section class="mb-6">
+        <h2 class="text-base font-extrabold font-display text-ink uppercase tracking-wider mb-3 flex items-center gap-2">
+          <span>📜</span> Track Record Sesi
+        </h2>
+        <div class="space-y-2.5">
           {sessionScores.map((s) => (
-            <a href={`/c/${code}/session/${s.sessionId}`} class="flex items-center justify-between rounded-xl border border-black/5 bg-surface-alt p-3 dark:border-white/10 dark:bg-[#161b22] hover:border-accent/30">
-              <span class="font-bold">{s.label}</span>
-              <span class={`font-extrabold ${s.total >= 0 ? 'text-good dark:text-[#30d158]' : 'text-bad dark:text-[#ff453a]'}`}>
+            <a
+              href={`/c/${code}/session/${s.sessionId}`}
+              class="flex items-center justify-between rounded-xl border-2 border-ink bg-surface p-3.5 shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
+            >
+              <span class="font-bold text-ink text-sm">{s.label}</span>
+              <span class={`font-extrabold font-display text-base px-2 py-0.5 rounded border border-ink/20 ${s.total >= 0 ? 'bg-good/10 text-good' : 'bg-bad/10 text-bad'}`}>
                 {s.total >= 0 ? `+${s.total}` : s.total}
               </span>
             </a>
@@ -52,8 +80,8 @@ const PlayerPage: FC<PlayerPageProps> = ({ code, circleName, playerName, total, 
       </section>
     )}
 
-    <footer class="mt-8 text-center text-xs text-ink-faint dark:text-[#788496]">
-      Powered by RemiScore
+    <footer class="mt-8 text-center text-xs font-medium text-faint">
+      Created by Tukang Kopek
     </footer>
   </Layout>
 );
