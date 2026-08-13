@@ -5,7 +5,7 @@ import Layout from './layout';
 interface Player { id: number; name: string }
 interface LeaderboardEntry { player: Player; total: number; sessionsPlayed: number; wins: number }
 interface SessionRow { id: number; label: string | null; status: string; created_at: string; completed_at: string | null; winnerName: string | null }
-interface LiveScore { player: Player; total: number; rank: number; lastDelta: number | null; roundCount: number }
+interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; roundCount: number }
 
 interface CirclePageProps {
   code: string;
@@ -69,6 +69,9 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
               <div class="flex items-center gap-3">
                 <span class="w-7 text-center text-sm font-extrabold">{medal(entry.rank)}</span>
                 <span class="font-bold text-ink text-sm">{entry.player.name}</span>
+                {entry.rankChange === 'up' && <span class="text-xs text-good">▲</span>}
+                {entry.rankChange === 'down' && <span class="text-xs text-bad">▼</span>}
+                {entry.rankChange === 'same' && <span class="text-xs text-muted">═</span>}
               </div>
               <div class="text-right">
                 <span class="text-lg font-extrabold font-display text-ink">{entry.total}</span>
@@ -164,7 +167,11 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
       </section>
     )}
 
-    <footer class="mt-8 text-center text-xs font-medium text-faint">
+    <p class="mb-6 text-center text-xs font-medium text-muted">
+      💡 Klik nama player atau sesi untuk melihat detailnya
+    </p>
+
+    <footer class="mt-2 text-center text-xs font-medium text-faint">
       Created by Tukang Kopek
     </footer>
   </Layout>

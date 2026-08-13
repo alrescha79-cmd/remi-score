@@ -8,6 +8,7 @@ interface PlayerPageProps {
   circleName: string;
   playerName: string;
   total: number;
+  seasonRank: number;
   roundsPlayed: number;
   best: number;
   worst: number;
@@ -16,7 +17,14 @@ interface PlayerPageProps {
   sessionScores: SessionScore[];
 }
 
-const PlayerPage: FC<PlayerPageProps> = ({ code, circleName, playerName, total, roundsPlayed, best, worst, sessionsPlayed, wins, sessionScores }) => (
+function medal(rank: number): string {
+  if (rank === 1) return '🥇';
+  if (rank === 2) return '🥈';
+  if (rank === 3) return '🥉';
+  return '';
+}
+
+const PlayerPage: FC<PlayerPageProps> = ({ code, circleName, playerName, total, seasonRank, roundsPlayed, best, worst, sessionsPlayed, wins, sessionScores }) => (
   <Layout title={`${playerName} — ${circleName}`}>
     <div class="mb-4">
       <a
@@ -28,14 +36,34 @@ const PlayerPage: FC<PlayerPageProps> = ({ code, circleName, playerName, total, 
     </div>
 
     {/* Header Card */}
-    <div class="rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal mb-6 flex items-center gap-4">
-      <div class="w-12 h-12 rounded-full border-2 border-ink bg-primary/10 text-primary font-display font-extrabold text-xl flex items-center justify-center shadow-brutal-sm">
-        {playerName.charAt(0).toUpperCase()}
+    <div class="rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal mb-6 flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <div class="w-12 h-12 rounded-full border-2 border-ink bg-primary/10 text-primary font-display font-extrabold text-xl flex items-center justify-center shadow-brutal-sm">
+          {playerName.charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <span class="inline-block text-[10px] font-extrabold uppercase tracking-wider text-muted mb-0.5">Profil Pemain</span>
+          <h1 class="text-2xl font-extrabold font-display text-ink">{playerName}</h1>
+        </div>
       </div>
-      <div>
-        <span class="inline-block text-[10px] font-extrabold uppercase tracking-wider text-muted mb-0.5">Profil Player</span>
-        <h1 class="text-2xl font-extrabold font-display text-ink">{playerName}</h1>
-      </div>
+      {seasonRank > 0 && (
+        <div class="text-right">
+          <span class="block text-[10px] font-extrabold uppercase tracking-wider text-muted mb-1">Peringkat Season</span>
+          <span class={`inline-flex items-center gap-1.5 rounded-lg border-2 border-ink px-3 py-1.5 font-display font-extrabold shadow-brutal-sm text-sm ${seasonRank === 1 ? 'bg-secondary/15 text-secondary' : 'bg-bg text-ink'}`}>
+            {seasonRank === 1 ? (
+              <>
+                <span class="text-base">👑</span>
+                <span>Sang Raja</span>
+              </>
+            ) : (
+              <>
+                {seasonRank <= 3 && <span>{medal(seasonRank)}</span>}
+                <span>#{seasonRank}</span>
+              </>
+            )}
+          </span>
+        </div>
+      )}
     </div>
 
     {/* Stats Grid */}

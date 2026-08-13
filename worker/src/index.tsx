@@ -171,7 +171,7 @@ app.get('/c/:code', async (c) => {
   const statsRows = await db.prepare(`
     SELECT p.id, p.name,
       COALESCE(SUM(s.score_change), 0) AS total,
-      COUNT(DISTINCT r.session_id) AS sessions_played
+      COUNT(DISTINCT CASE WHEN s.score_change != 0 THEN r.session_id END) AS sessions_played
     FROM players p
     LEFT JOIN scores s ON s.player_id = p.id
     LEFT JOIN rounds r ON s.round_id = r.id
@@ -222,6 +222,8 @@ app.get('/c/:code', async (c) => {
 
     const rows = liveRows.results ?? [];
     const maxRound = rows.length > 0 ? Math.max(...rows.map((r: any) => r.round_number)) : 0;
+    const prevRound = maxRound > 1 ? maxRound - 1 : 0;
+
     const latestScores = new Map<number, { total: number; delta: number; name: string }>();
     for (const r of rows as any[]) {
       if (r.round_number === maxRound && !latestScores.has(r.id)) {
@@ -229,14 +231,42 @@ app.get('/c/:code', async (c) => {
       }
     }
 
+    // Previous round totals for rank comparison
+    const prevScores = new Map<number, number>();
+    if (prevRound > 0) {
+      for (const r of rows as any[]) {
+        if (r.round_number === prevRound && !prevScores.has(r.id)) {
+          prevScores.set(r.id, r.cumulative_total);
+        }
+      }
+    }
+
     const sorted = [...latestScores.entries()]
       .map(([id, v]) => ({ player: { id, name: v.name }, total: v.total, lastDelta: v.delta, roundCount: maxRound }))
       .sort((a, b) => b.total - a.total);
 
+    // Previous round ranking (sorted by prev total DESC)
+    const prevSorted = [...prevScores.entries()]
+      .sort((a, b) => b[1] - a[1]);
+    const prevRankMap = new Map<number, number>();
+    let prevRank = 0; let prevPrev: number | null = null;
+    for (let i = 0; i < prevSorted.length; i++) {
+      const [pid, total] = prevSorted[i];
+      if (total !== prevPrev) { prevRank = i + 1; prevPrev = total; }
+      prevRankMap.set(pid, prevRank);
+    }
+
     let rank = 0, prev: number | null = null;
     live = sorted.map((e, i) => {
       if (e.total !== prev) { rank = i + 1; prev = e.total; }
-      return { ...e, rank };
+      const oldRank = prevRankMap.get(e.player.id);
+      let rankChange: 'up' | 'down' | 'same' | null = null;
+      if (oldRank !== undefined) {
+        if (oldRank > rank) rankChange = 'up';
+        else if (oldRank < rank) rankChange = 'down';
+        else rankChange = 'same';
+      }
+      return { ...e, rank, rankChange };
     });
   }
 
@@ -351,6 +381,19 @@ app.get('/c/:code/player/:playerId', async (c) => {
     .bind(playerId, circleId).first();
   if (!player) return c.html(<NotFound />, 404);
 
+  // Calculate season rank
+  const rankRows = await db.prepare(`
+    SELECT p.id, COALESCE(SUM(s.score_change), 0) as total
+    FROM players p
+    LEFT JOIN scores s ON s.player_id = p.id
+    WHERE p.circle_id = ?
+    GROUP BY p.id
+    ORDER BY total DESC
+  `).bind(circleId).all();
+
+  const sortedPlayers = (rankRows.results ?? []) as { id: number; total: number }[];
+  const seasonRank = sortedPlayers.findIndex((p) => p.id === playerId) + 1;
+
   const stats = await db.prepare(`
     SELECT
       COALESCE(SUM(s.score_change), 0) as total,
@@ -401,6 +444,7 @@ app.get('/c/:code/player/:playerId', async (c) => {
       circleName={circleName}
       playerName={player.name as string}
       total={(stats?.total as number) ?? 0}
+      seasonRank={seasonRank}
       roundsPlayed={(stats?.rounds_played as number) ?? 0}
       best={(stats?.best as number) ?? 0}
       worst={(stats?.worst as number) ?? 0}
