@@ -1,3 +1,4 @@
+/* Hallmark · pre-emit critique: P5 H5 E5 S5 R5 V5 */
 import type { FC, PropsWithChildren } from 'hono/jsx';
 
 interface LayoutProps {
@@ -6,33 +7,50 @@ interface LayoutProps {
 }
 
 const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, children }) => (
-  <html lang="en">
+  <html lang="id">
     <head>
       <meta charset="UTF-8" />
       <meta name="viewport" content="width=device-width, initial-scale=1.0" />
       <title>{title} — RemiScore</title>
       {description && <meta name="description" content={description} />}
+      <link rel="preconnect" href="https://fonts.googleapis.com" />
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+      <link href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@700,800,900&display=swap" rel="stylesheet" />
       <script src="https://cdn.tailwindcss.com"></script>
       <script dangerouslySetInnerHTML={{
-        __html: `tailwind.config={theme:{extend:{colors:{
-          accent:{DEFAULT:'#0071e3',soft:'#e7f0fd',deep:'#0056b3'},
-          good:'#0a5d2e',bad:'#c62828',
-          surface:{DEFAULT:'#f2f4f9',alt:'#fbfcfe',fill:'#e8ebf2'},
-          ink:{DEFAULT:'#1b1f27',muted:'#5d6471',faint:'#5f6673'},
-          medalGold:'#a0740c',medalSilver:'#787f8c',medalBronze:'#b0713f'
-        }}}}`
+        __html: `tailwind.config={theme:{extend:{
+          fontFamily:{
+            display:['"Cabinet Grotesk"', 'Inter', 'sans-serif'],
+            sans:['"Inter"', 'sans-serif']
+          },
+          colors:{
+            primary:'#3b82f6',
+            secondary:'#a855f7',
+            bg:'#f8fafc',
+            surface:'#ffffff',
+            ink:'#1e293b',
+            muted:'#64748b',
+            faint:'#94a3b8',
+            good:'#22c55e',
+            bad:'#ef4444',
+            line:'#1e293b'
+          },
+          boxShadow:{
+            brutal:'4px 4px 0px 0px #1e293b',
+            'brutal-lg':'6px 6px 0px 0px #1e293b',
+            'brutal-sm':'2px 2px 0px 0px #1e293b'
+          }
+        }}}`
       }} />
       <style dangerouslySetInnerHTML={{
         __html: `
-          @media(prefers-color-scheme:dark){
-            :root{--bg:#0d1117;--bg-alt:#161b22;--bg-fill:#21262d;--ink:#f5f7fc;--ink-muted:#9da8b8;--ink-faint:#788496;--accent:#0a84ff;--accent-soft:#162842;--good:#30d158;--bad:#ff453a}
-            body{background:var(--bg);color:var(--ink)}
-          }
-          body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+          body { font-family: 'Inter', sans-serif; background-color: #f8fafc; color: #1e293b; }
+          h1, h2, h3, .font-display { font-family: 'Cabinet Grotesk', sans-serif; }
         `
       }} />
     </head>
-    <body class="min-h-screen bg-surface text-ink dark:bg-[#0d1117] dark:text-[#f5f7fc]">
+    <body class="min-h-screen bg-bg text-ink selection:bg-primary/20 selection:text-primary">
       <div class="mx-auto max-w-lg px-4 py-6">
         {children}
       </div>

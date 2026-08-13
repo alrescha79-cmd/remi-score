@@ -3,10 +3,16 @@ import { useEffect, useMemo } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/ScreenHeader';
+import StatCard from '@/components/StatCard';
 import { formatTime } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { formatSignedScore } from '@/lib/score';
+import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
+
+function scoreColor(value: number, good: string, bad: string, muted: string): string {
+  return value > 0 ? good : value < 0 ? bad : muted;
+}
 
 export default function PlayerDetailScreen() {
   const { id, playerId } = useLocalSearchParams<{ id: string; playerId: string }>();
@@ -15,6 +21,16 @@ export default function PlayerDetailScreen() {
   const router = useRouter();
   const t = useT();
   const { players, scores, totals, loading, load } = useSessionStore();
+
+  const bg = useThemeColor('bg');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const primary = useThemeColor('primary');
+  const good = useThemeColor('good');
+  const bad = useThemeColor('bad');
 
   useEffect(() => {
     load(sessionId);
@@ -35,8 +51,8 @@ export default function PlayerDetailScreen() {
 
   if (loading || !player) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface dark:bg-surface-dark">
-        <ActivityIndicator size="large" color="#0071e3" />
+      <SafeAreaView style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: bg }}>
+        <ActivityIndicator size="large" color={primary} />
       </SafeAreaView>
     );
   }
@@ -44,15 +60,14 @@ export default function PlayerDetailScreen() {
   const total = totals[pid] ?? 0;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader
         title={player.name}
         onBack={() => router.back()}
         right={
           <Text
-            className={`text-xl font-extrabold tabular-nums ${
-              total > 0 ? 'text-good dark:text-good-dark' : total < 0 ? 'text-bad dark:text-bad-dark' : 'text-ink-muted dark:text-ink-dark-muted'
-            }`}
+            className="text-xl font-extrabold tabular-nums"
+            style={{ color: scoreColor(total, good, bad, inkMuted) }}
           >
             {formatSignedScore(total)}
           </Text>
@@ -60,45 +75,41 @@ export default function PlayerDetailScreen() {
       />
 
       <View className="flex-row gap-2 px-5 pt-1">
-        <StatCard label={t('player.total')} value={formatSignedScore(total)} />
+        <StatCard label={t('player.total')} value={formatSignedScore(total)} color={scoreColor(total, good, bad, inkMuted)} />
         <StatCard label={t('player.rounds')} value={String(rounds.length)} />
-        <StatCard label={t('player.best')} value={formatSignedScore(best)} positive />
-        <StatCard label={t('player.worst')} value={formatSignedScore(worst)} negative />
+        <StatCard label={t('player.best')} value={formatSignedScore(best)} color={good} />
+        <StatCard label={t('player.worst')} value={formatSignedScore(worst)} color={bad} />
       </View>
 
-      <Text className="mb-3 mt-7 px-5 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+      <Text className="mb-3 mt-7 px-5 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
         {t('player.history')}
       </Text>
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
         {rounds.length === 0 ? (
-          <Text className="py-8 text-center text-sm text-ink-muted dark:text-ink-dark-muted">{t('session.noScores')}</Text>
+          <Text className="py-8 text-center text-sm" style={{ color: inkMuted }}>{t('session.noScores')}</Text>
         ) : (
           rounds.map((r) => (
             <View
               key={r.id}
-              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-3 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+              className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-3 shadow-brutal-1"
+              style={{ borderColor: border, backgroundColor: surface }}
             >
-              <View className="mr-3 h-8 w-8 items-center justify-center rounded-full bg-accent-soft dark:bg-accent-dark-soft">
-                <Text className="text-xs font-extrabold tabular-nums text-accent-deep dark:text-accent-dark-deep">{r.round_number}</Text>
+              <View className="mr-3 h-8 w-8 items-center justify-center rounded-brutal border" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+                <Text className="text-xs font-extrabold tabular-nums" style={{ color: primary }}>{r.round_number}</Text>
               </View>
               <View className="min-w-0 flex-1">
-                <Text className="text-sm font-bold text-ink dark:text-ink-dark">
+                <Text className="text-sm font-bold" style={{ color: ink }}>
                   {t('session.roundLabel', { n: r.round_number })}
                 </Text>
-                <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{formatTime(r.timestamp)}</Text>
+                <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>{formatTime(r.timestamp)}</Text>
               </View>
               <Text
-                className={`w-16 text-right text-base font-extrabold tabular-nums ${
-                  r.score_change > 0
-                    ? 'text-good dark:text-good-dark'
-                    : r.score_change < 0
-                      ? 'text-bad dark:text-bad-dark'
-                      : 'text-ink-muted dark:text-ink-dark-muted'
-                }`}
+                className="w-16 text-right text-base font-extrabold tabular-nums"
+                style={{ color: scoreColor(r.score_change, good, bad, inkMuted) }}
               >
                 {formatSignedScore(r.score_change)}
               </Text>
-              <Text className="w-16 text-right text-sm font-bold tabular-nums text-ink dark:text-ink-dark">
+              <Text className="w-16 text-right text-sm font-bold tabular-nums" style={{ color: ink }}>
                 {formatSignedScore(r.cumulative_total)}
               </Text>
             </View>
@@ -106,19 +117,5 @@ export default function PlayerDetailScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StatCard({ label, value, positive, negative }: { label: string; value: string; positive?: boolean; negative?: boolean }) {
-  const color = positive
-    ? 'text-good dark:text-good-dark'
-    : negative
-      ? 'text-bad dark:text-bad-dark'
-      : 'text-ink dark:text-ink-dark';
-  return (
-    <View className="flex-1 rounded-2xl border border-rule bg-surface-alt px-3 py-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
-      <Text className="text-[10px] font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">{label}</Text>
-      <Text className={`mt-2 text-base font-extrabold tabular-nums ${color}`}>{value}</Text>
-    </View>
   );
 }

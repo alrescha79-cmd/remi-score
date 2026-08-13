@@ -15,19 +15,23 @@ import { createSession, deleteSession, getActiveSession } from '@/db/sessionRepo
 import { pullCloudSync } from '@/lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL } from '@/lib/cloudSyncCore';
 import { formatDateTime } from '@/lib/format';
-import { useT } from '@/lib/i18n';
+import { formatCount, useT } from '@/lib/i18n';
 import { rankByScore } from '@/lib/score';
+import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore } from '@/store/settingsStore';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
 function RankBadge({ rank }: { rank: number }) {
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const surfaceElevated = useThemeColor('surfaceElevated');
   if (rank >= 1 && rank <= 3) {
     return <Ionicons name="medal" size={26} color={MEDALS[rank - 1]} />;
   }
   return (
-    <View className="h-8 w-8 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
-      <Text className="text-sm font-bold tabular-nums text-ink-muted dark:text-ink-dark-muted">{rank}</Text>
+    <View className="h-8 w-8 items-center justify-center rounded-full border" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+      <Text className="text-sm font-bold tabular-nums" style={{ color: inkMuted }}>{rank}</Text>
     </View>
   );
 }
@@ -37,6 +41,18 @@ export default function CircleScreen() {
   const circleId = Number(id);
   const router = useRouter();
   const t = useT();
+
+  const bg = useThemeColor('bg');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const inkFaint = useThemeColor('inkFaint');
+  const border = useThemeColor('border');
+  const primary = useThemeColor('primary');
+  const bad = useThemeColor('bad');
+  const primaryInk = useThemeColor('primaryInk');
+  const good = useThemeColor('good');
 
   const [circle, setCircle] = useState<Circle | null>(null);
   const [players, setPlayers] = useState<Player[]>([]);
@@ -140,44 +156,47 @@ export default function CircleScreen() {
     (r) => r.item.sessionsPlayed > 0 || r.item.total !== 0
   );
   const canStart = players.length >= 2;
+  const canAct = canStart || activeSessionId != null;
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader title={circle?.name ?? 'Circle'} onBack={() => router.back()} />
 
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
         <TouchableOpacity
           onPress={startOrResume}
-          disabled={!canStart}
+          disabled={!canAct}
           accessibilityRole="button"
-          className="mt-1 flex-row items-center justify-center rounded-full bg-accent py-4 disabled:bg-ink/10 dark:bg-accent-dark dark:disabled:bg-ink-dark/10"
+          className="mt-1 flex-row items-center justify-center rounded-brutal border-2 py-4 shadow-brutal-1"
+          style={{ borderColor: border, backgroundColor: primary, opacity: canAct ? 1 : 0.4 }}
         >
           <Ionicons
             name={activeSessionId != null ? 'play' : 'add-circle'}
             size={20}
-            color={canStart || activeSessionId != null ? '#ffffff' : '#5d6471'}
+            color={canAct ? primaryInk : inkMuted}
           />
           <Text
-            className={`ml-2 text-base font-extrabold ${
-              canStart || activeSessionId != null ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'
-            }`}
+            className="ml-2 text-base font-extrabold"
+            style={{ color: canAct ? primaryInk : inkMuted }}
           >
             {activeSessionId != null ? t('circle.resume') : t('circle.start')}
           </Text>
         </TouchableOpacity>
-        {!canStart && activeSessionId == null && (
-          <Text className="mt-2 text-center text-xs text-ink-muted dark:text-ink-dark-muted">
+        {!canAct && (
+          <Text className="mt-2 text-center text-xs" style={{ color: inkMuted }}>
             {t('circle.needPlayers')}
           </Text>
         )}
 
-        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
           {t('circle.players')}
         </Text>
         <View className="flex-row items-center">
           <TextInput
-            className="mr-2 flex-1 h-12 rounded-xl bg-surface-fill px-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+            className="mr-2 flex-1 h-12 rounded-brutal border-2 px-4 text-base"
+            style={{ borderColor: border, backgroundColor: surfaceElevated, color: ink }}
             placeholder={t('circle.addPlayer')}
+            placeholderTextColor={inkFaint}
             value={newPlayer}
             onChangeText={setNewPlayer}
             returnKeyType="done"
@@ -188,9 +207,10 @@ export default function CircleScreen() {
             disabled={!newPlayer.trim()}
             accessibilityRole="button"
             accessibilityLabel={t('circle.addPlayer')}
-            className="h-12 w-12 items-center justify-center rounded-full bg-accent disabled:opacity-40 dark:bg-accent-dark"
+            className="h-12 w-12 items-center justify-center rounded-brutal border-2 shadow-brutal-1"
+            style={{ borderColor: border, backgroundColor: primary, opacity: newPlayer.trim() ? 1 : 0.4 }}
           >
-            <Ionicons name="add" size={22} color="#ffffff" />
+            <Ionicons name="add" size={22} color={primaryInk} />
           </TouchableOpacity>
         </View>
 
@@ -202,10 +222,11 @@ export default function CircleScreen() {
                 onPress={() => openPlayerModal(p)}
                 onLongPress={() => confirmDeletePlayer(p)}
                 accessibilityRole="button"
-                className="mb-2 mr-2 flex-row items-center rounded-full bg-accent-soft py-2 pl-4 pr-3 dark:bg-[#1a2b42]"
+                className="mb-2 mr-2 flex-row items-center rounded-brutal border-2 py-2 pl-4 pr-3"
+                style={{ borderColor: border, backgroundColor: surfaceElevated }}
               >
-                <Text className="text-sm font-bold text-accent-deep dark:text-[#58a6ff]">{p.name}</Text>
-                <Ionicons name="pencil" size={12} className="ml-2 text-accent/60 dark:text-[#58a6ff]/70" />
+                <Text className="text-sm font-bold" style={{ color: primary }}>{p.name}</Text>
+                <Ionicons name="pencil" size={12} color={primary} style={{ marginLeft: 8 }} />
               </TouchableOpacity>
             ))}
           </View>
@@ -215,7 +236,7 @@ export default function CircleScreen() {
           </View>
         )}
 
-        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
           {t('circle.leaderboard')}
         </Text>
         {ranked.length === 0 ? (
@@ -231,29 +252,36 @@ export default function CircleScreen() {
                 })
               }
               accessibilityRole="button"
-              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 shadow-soft active:opacity-80 dark:border-white/10 dark:bg-surface-dark-alt dark:shadow-none"
+              className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-4 shadow-brutal-1 active:opacity-80"
+              style={{ borderColor: border, backgroundColor: surface }}
             >
               <View className="mr-3 w-9 items-center">
                 <RankBadge rank={rank} />
               </View>
               <View className="min-w-0 flex-1">
-                <Text className="text-sm font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
+                <Text className="text-sm font-bold" style={{ color: ink }} numberOfLines={1}>
                   {item.player.name}
                 </Text>
-                <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">
-                  {t(item.wins === 1 ? 'circle.wins' : 'circle.winsMany', { count: item.wins })} ·{' '}
-                  {t(item.sessionsPlayed === 1 ? 'circle.sessionsShort' : 'circle.sessionsShortMany', {
-                    count: item.sessionsPlayed,
-                  })}
+                <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>
+                  {[
+                    item.wins > 0
+                      ? `${formatCount(item.wins)} ${t(item.wins === 1 ? 'circle.wins' : 'circle.winsMany')}`
+                      : null,
+                    item.sessionsPlayed > 0
+                      ? `${formatCount(item.sessionsPlayed)} ${t(item.sessionsPlayed === 1 ? 'circle.sessionsShort' : 'circle.sessionsShortMany')}`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(' · ')}
                 </Text>
               </View>
-              <Text className="text-lg font-extrabold tabular-nums text-ink dark:text-ink-dark">{score}</Text>
-              <Ionicons name="chevron-forward" size={16} className="ml-2 text-ink-muted dark:text-ink-dark-muted" />
+              <Text className="text-lg font-extrabold tabular-nums" style={{ color: ink }}>{score}</Text>
+              <Ionicons name="chevron-forward" size={16} color={inkMuted} style={{ marginLeft: 8 }} />
             </TouchableOpacity>
           ))
         )}
 
-        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-7 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
           {t('circle.history')}
         </Text>
         {history.length === 0 ? (
@@ -266,7 +294,8 @@ export default function CircleScreen() {
             return (
               <View
                 key={session.id}
-                className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 dark:border-white/10 dark:bg-surface-dark-alt dark:shadow-none"
+                className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-4"
+                style={{ borderColor: border, backgroundColor: surface }}
               >
                 <TouchableOpacity
                   disabled={active}
@@ -274,31 +303,32 @@ export default function CircleScreen() {
                   accessibilityRole="button"
                   className="min-w-0 flex-1"
                 >
-                  <View className="flex-row items-center justify-between">
-                    <Text className="text-sm font-bold text-ink dark:text-ink-dark">
+                  <View className="flex-row items-center">
+                    <Text className="text-sm font-bold" style={{ color: ink }}>
                       {formatDateTime(session.created_at)}
                     </Text>
-                    <View className="ml-2 flex-row items-center">
-                      <View className={`mr-2 h-1.5 w-1.5 rounded-full ${active ? 'bg-accent dark:bg-accent-dark' : 'bg-good dark:bg-good-dark'}`} />
-                      <Text className={`text-xs font-bold ${active ? 'text-accent-deep dark:text-accent-dark-deep' : 'text-good dark:text-good-dark'}`}>
-                        {active ? t('circle.active') : t('circle.finished')}
-                      </Text>
-                    </View>
                   </View>
                   {!active && (
-                    <Text className="mt-1 text-xs text-ink-muted dark:text-ink-dark-muted" numberOfLines={1}>
+                    <Text className="mt-1 text-xs" style={{ color: inkMuted }} numberOfLines={1}>
                       {t('circle.winner', { names: winners.map((w) => w.item.player.name).join(', ') })}
                     </Text>
                   )}
                 </TouchableOpacity>
+                <View className="ml-3 flex-1 flex-row items-center justify-end">
+                  <View className="mr-2 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: active ? primary : good }} />
+                  <Text className="text-xs font-bold" style={{ color: active ? primary : good }}>
+                    {active ? t('circle.active') : t('circle.finished')}
+                  </Text>
+                </View>
                 <TouchableOpacity
                   onPress={() => confirmDeleteSession(session.id)}
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={t('circle.deleteSessionTitle')}
-                  className="ml-3 h-10 w-10 items-center justify-center rounded-full bg-bad/10 dark:bg-bad-dark/10"
+                  className="ml-3 h-10 w-10 items-center justify-center rounded-brutal border"
+                  style={{ borderColor: border, backgroundColor: surfaceElevated }}
                 >
-                  <Ionicons name="trash-outline" size={16} className="text-bad dark:text-bad-dark" />
+                  <Ionicons name="trash-outline" size={16} color={bad} />
                 </TouchableOpacity>
               </View>
             );
@@ -309,13 +339,16 @@ export default function CircleScreen() {
       <Modal transparent visible={editingPlayer != null} animationType="fade" onRequestClose={() => setEditingPlayer(null)}>
         <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={() => setEditingPlayer(null)}>
           <Pressable
-            className="w-full rounded-[28px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt"
+            className="w-full rounded-brutal-xl border-2 p-6 shadow-brutal-2"
+            style={{ borderColor: border, backgroundColor: surface }}
             onPress={() => {}}
           >
-            <Text className="mb-4 text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('circle.renamePlayer')}</Text>
+            <Text className="mb-4 text-lg font-extrabold tracking-tight" style={{ color: ink }}>{t('circle.renamePlayer')}</Text>
             <TextInput
-              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+              className="mb-4 rounded-brutal border-2 px-4 py-4 text-base"
+              style={{ borderColor: border, backgroundColor: surfaceElevated, color: ink }}
               placeholder={t('circle.renamePlaceholder')}
+              placeholderTextColor={inkFaint}
               value={nameDraft}
               onChangeText={setNameDraft}
               autoFocus
@@ -326,17 +359,19 @@ export default function CircleScreen() {
               onPress={savePlayerName}
               disabled={!nameDraft.trim()}
               accessibilityRole="button"
-              className="items-center rounded-full bg-accent py-4 disabled:opacity-40 dark:bg-accent-dark"
+              className="items-center rounded-brutal border-2 py-4 shadow-brutal-1"
+              style={{ borderColor: border, backgroundColor: primary, opacity: nameDraft.trim() ? 1 : 0.4 }}
             >
-              <Text className="text-base font-extrabold text-white">{t('common.save')}</Text>
+              <Text className="text-base font-extrabold" style={{ color: primaryInk }}>{t('common.save')}</Text>
             </TouchableOpacity>
             {editingPlayer && (
               <TouchableOpacity
                 onPress={() => confirmDeletePlayer(editingPlayer)}
                 accessibilityRole="button"
-                className="mt-3 items-center rounded-full border border-bad/40 py-4 dark:border-bad-dark/40"
+                className="mt-3 items-center rounded-brutal border-2 py-4"
+                style={{ borderColor: border, backgroundColor: surfaceElevated }}
               >
-                <Text className="text-base font-extrabold text-bad dark:text-bad-dark">{t('common.delete')}</Text>
+                <Text className="text-base font-extrabold" style={{ color: bad }}>{t('common.delete')}</Text>
               </TouchableOpacity>
             )}
           </Pressable>

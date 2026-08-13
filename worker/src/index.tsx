@@ -10,18 +10,55 @@ import {
   type SyncPayload,
 } from './db';
 import CirclePage from './pages/circle';
+import IndexPage from './pages/indexPage';
 import NotFound from './pages/notFound';
 import PlayerPage from './pages/player';
 import SessionPage from './pages/session';
 
 type Env = { Bindings: { DB: D1Database } };
 
-const app = new Hono<Env>();
+const app = new Hono<Env>({ strict: false });
 
 const CODE_RE = /^[a-z2-9]{6}$/;
 
+async function ensureCircleExists(db: D1Database, code: string): Promise<Record<string, unknown> | null> {
+  let shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  if (shareRow) return shareRow;
+
+  try {
+    const res = await fetch(`https://kopek.cakson.my.id/api/circle?code=${code}`);
+    if (res.ok) {
+      const data = (await res.json()) as any;
+      if (data.ok && data.circleId) {
+        await upsertCircle(
+          db,
+          {
+            shareCode: data.shareCode,
+            circleId: data.circleId,
+            circleName: data.circleName,
+            baseSyncedAt: null,
+            tables: {
+              players: data.players ?? [],
+              sessions: data.sessions ?? [],
+              rounds: data.rounds ?? [],
+              scores: data.scores ?? [],
+              session_players: data.session_players ?? [],
+            },
+          },
+          data.syncedAt ?? new Date().toISOString()
+        );
+        shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+        return shareRow;
+      }
+    }
+  } catch {
+    // Ignore remote fallback fetch errors
+  }
+  return null;
+}
+
 app.use('*', async (c, next) => {
-  if (c.env.DB) {
+  if (c.env?.DB) {
     await ensureSchema(c.env.DB);
   }
   await next();
@@ -30,6 +67,24 @@ app.use('*', async (c, next) => {
 app.use('/api/*', cors());
 
 app.get('/health', (c) => c.json({ ok: true }));
+
+app.get('/', async (c) => {
+  const codeParam = c.req.query('code')?.trim().toLowerCase();
+  if (codeParam) {
+    if (!CODE_RE.test(codeParam)) {
+      return c.html(<IndexPage error="Kode harus 6 digit angka/huruf kecil (misal: abc234)." searchedCode={codeParam} />, 400);
+    }
+    const db = c.env?.DB;
+    if (db) {
+      const shareRow = await ensureCircleExists(db, codeParam);
+      if (shareRow) {
+        return c.redirect(`/c/${codeParam}`);
+      }
+    }
+    return c.html(<IndexPage error="Kode tongkrongan tidak ditemukan." searchedCode={codeParam} />, 404);
+  }
+  return c.html(<IndexPage />);
+});
 
 app.get('/api/circle', async (c) => {
   const code = c.req.query('code') ?? '';
@@ -102,10 +157,11 @@ app.delete('/api/circle/:circleId', async (c) => {
 });
 
 app.get('/c/:code', async (c) => {
-  const code = c.req.param('code');
-  const db = c.env.DB;
+  const code = c.req.param('code')?.toLowerCase();
+  const db = c.env?.DB;
+  if (!db) return c.html(<NotFound />, 404);
 
-  const shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  const shareRow = await ensureCircleExists(db, code);
   if (!shareRow) return c.html(<NotFound />, 404);
 
   const circleId = shareRow.circle_id as number;
@@ -219,11 +275,12 @@ app.get('/c/:code', async (c) => {
 });
 
 app.get('/c/:code/session/:sessionId', async (c) => {
-  const code = c.req.param('code');
+  const code = c.req.param('code')?.toLowerCase();
   const sessionId = Number(c.req.param('sessionId'));
-  const db = c.env.DB;
+  const db = c.env?.DB;
+  if (!db) return c.html(<NotFound />, 404);
 
-  const shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  const shareRow = await ensureCircleExists(db, code);
   if (!shareRow) return c.html(<NotFound />, 404);
 
   const circleId = shareRow.circle_id as number;
@@ -243,10 +300,12 @@ app.get('/c/:code/session/:sessionId', async (c) => {
   `).bind(sessionId).all();
 
   const playersMap = new Map<number, { id: number; name: string }>();
+  const playerTotalsMap = new Map<number, number>();
   const roundsMap = new Map<number, { player: { id: number; name: string }; change: number; total: number }[]>();
 
   for (const row of (scoreRows.results ?? []) as any[]) {
     playersMap.set(row.player_id, { id: row.player_id, name: row.name });
+    playerTotalsMap.set(row.player_id, row.cumulative_total);
     const arr = roundsMap.get(row.round_number) ?? [];
     arr.push({ player: { id: row.player_id, name: row.name }, change: row.score_change, total: row.cumulative_total });
     roundsMap.set(row.round_number, arr);
@@ -256,7 +315,13 @@ app.get('/c/:code/session/:sessionId', async (c) => {
     .sort(([a], [b]) => a - b)
     .map(([roundNumber, scores]) => ({ roundNumber, scores }));
 
-  const players = [...playersMap.values()].sort((a, b) => a.name.localeCompare(b.name));
+  // Sort players by total score DESC (highest points first, same as season leaderboard), then name ASC
+  const players = [...playersMap.values()].sort((a, b) => {
+    const totalA = playerTotalsMap.get(a.id) ?? 0;
+    const totalB = playerTotalsMap.get(b.id) ?? 0;
+    if (totalB !== totalA) return totalB - totalA;
+    return a.name.localeCompare(b.name);
+  });
 
   return c.html(
     <SessionPage
@@ -271,11 +336,12 @@ app.get('/c/:code/session/:sessionId', async (c) => {
 });
 
 app.get('/c/:code/player/:playerId', async (c) => {
-  const code = c.req.param('code');
+  const code = c.req.param('code')?.toLowerCase();
   const playerId = Number(c.req.param('playerId'));
-  const db = c.env.DB;
+  const db = c.env?.DB;
+  if (!db) return c.html(<NotFound />, 404);
 
-  const shareRow = await db.prepare('SELECT * FROM share_codes WHERE code = ?').bind(code).first();
+  const shareRow = await ensureCircleExists(db, code);
   if (!shareRow) return c.html(<NotFound />, 404);
 
   const circleId = shareRow.circle_id as number;

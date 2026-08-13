@@ -12,11 +12,24 @@ import { deleteCloudCircle, pullCloudSync } from '@/lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL, validateShareCode } from '@/lib/cloudSyncCore';
 import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
+import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore } from '@/store/settingsStore';
 
 export default function HomeScreen() {
   const router = useRouter();
   const t = useT();
+
+  const bg = useThemeColor('bg');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const primary = useThemeColor('primary');
+  const primaryInk = useThemeColor('primaryInk');
+  const inkFaint = useThemeColor('inkFaint');
+  const bad = useThemeColor('bad');
+
   const circleSyncMeta = useSettingsStore((s) => s.circleSyncMeta);
   const joinedIds = Object.keys(circleSyncMeta).map(Number);
   const [circles, setCircles] = useState<CircleWithStats[]>([]);
@@ -103,42 +116,45 @@ export default function HomeScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <View className="flex-row items-end justify-between px-5 pb-4 pt-6">
         <View className="min-w-0">
-          <Text className="text-3xl font-extrabold tracking-tight text-ink dark:text-ink-dark">RemiScore</Text>
-          <Text className="mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('home.tagline')}</Text>
+          <Text className="text-3xl font-extrabold tracking-tight" style={{ color: ink }}>RemiScore</Text>
+          <Text className="mt-1 text-sm" style={{ color: inkMuted }}>{t('home.tagline')}</Text>
         </View>
         <View className="flex-row items-center">
           <TouchableOpacity
             onPress={() => setJoinVisible(true)}
             accessibilityRole="button"
-            accessibilityLabel={t('cloud.join')}
-            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-accent/40 bg-accent-soft dark:border-accent-dark/70 dark:bg-accent-dark-soft"
+            accessibilityLabel={t('home.join')}
+            className="mr-3 h-11 w-11 items-center justify-center rounded-brutal border-2"
+            style={{ borderColor: border, backgroundColor: surface }}
           >
-            <Ionicons name="cloud-download-outline" size={20} className="text-accent dark:text-accent-dark" />
+            <Ionicons name="cloud-download-outline" size={20} color={primary} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => router.push('/settings')}
             accessibilityRole="button"
-            accessibilityLabel="Settings"
-            className="mr-3 h-11 w-11 items-center justify-center rounded-full border border-rule bg-surface-alt dark:border-white/25 dark:bg-white/10"
+            accessibilityLabel={t('home.settings')}
+            className="mr-3 h-11 w-11 items-center justify-center rounded-brutal border-2"
+            style={{ borderColor: border, backgroundColor: surface }}
           >
-            <Ionicons name="settings-outline" size={20} className="text-ink dark:text-ink-dark" />
+            <Ionicons name="settings-outline" size={20} color={ink} />
           </TouchableOpacity>
           <TouchableOpacity
             onPress={() => setModalVisible(true)}
             accessibilityRole="button"
             accessibilityLabel={t('home.newCircle')}
-            className="h-11 w-11 items-center justify-center rounded-full bg-accent dark:bg-accent-dark"
+            className="h-11 w-11 items-center justify-center rounded-brutal border-2 shadow-brutal-1"
+            style={{ borderColor: border, backgroundColor: primary }}
           >
-            <Ionicons name="add" size={24} color="#ffffff" />
+            <Ionicons name="add" size={24} color={primaryInk} />
           </TouchableOpacity>
         </View>
       </View>
 
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
-        <Text className="mb-3 mt-2 px-1 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+        <Text className="mb-3 mt-2 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
           {t('home.circles')}
         </Text>
 
@@ -151,31 +167,30 @@ export default function HomeScreen() {
               onPress={() => router.push({ pathname: '/circle/[id]', params: { id: String(circle.id) } })}
               onLongPress={() => confirmDelete(circle)}
               accessibilityRole="button"
-              className="mb-3 flex-row items-center rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft active:opacity-80 dark:border-white/12 dark:bg-surface-dark-alt dark:shadow-none"
+              className="mb-3 flex-row items-center rounded-brutal-lg border-2 p-4 shadow-brutal-1 active:opacity-80"
+              style={{ borderColor: border, backgroundColor: surface }}
             >
-              <View className="mr-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
-                <Ionicons name="people" size={22} className="text-accent dark:text-accent-dark" />
+              <View className="mr-4 h-12 w-12 items-center justify-center rounded-brutal border-2" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+                <Ionicons name="people" size={22} color={primary} />
               </View>
               <View className="min-w-0 flex-1">
                 <View className="flex-row items-center gap-1.5">
-                  <Text className="text-base font-bold text-ink dark:text-ink-dark" numberOfLines={1}>
+                  <Text className="text-base font-bold" style={{ color: ink }} numberOfLines={1}>
                     {circle.name}
                   </Text>
                   {joinedIds.includes(circle.id) && (
-                    <Ionicons name="cloud" size={13} className="text-accent dark:text-accent-dark" />
+                    <Ionicons name="cloud" size={13} color={primary} />
                   )}
                 </View>
-                <Text className="mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted" numberOfLines={1}>
-                  {t(circle.stats.sessionCount === 1 ? 'home.sessionsOne' : 'home.sessions', {
-                    count: circle.stats.sessionCount,
-                  })}
+                <Text className="mt-0.5 text-xs" style={{ color: inkMuted }} numberOfLines={1}>
+                  {circle.stats.sessionCount} {t(circle.stats.sessionCount === 1 ? 'home.sessionsOne' : 'home.sessions')}
                   {circle.stats.lastActivityAt
                     ? ` · ${t('home.lastActivity', { date: formatDate(circle.stats.lastActivityAt) })}`
                     : ''}
                 </Text>
               </View>
-              <View className="ml-2 h-7 w-7 items-center justify-center rounded-full bg-ink/5 dark:bg-ink-dark/10">
-                <Ionicons name="chevron-forward" size={16} className="text-ink-muted dark:text-ink-dark-muted" />
+              <View className="ml-2 h-7 w-7 items-center justify-center rounded-full border" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+                <Ionicons name="chevron-forward" size={16} color={inkMuted} />
               </View>
             </TouchableOpacity>
           ))
@@ -185,17 +200,20 @@ export default function HomeScreen() {
       <Modal transparent visible={modalVisible} animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={() => setModalVisible(false)}>
           <Pressable
-            className="w-full rounded-[28px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt"
+            className="w-full rounded-brutal-xl border-2 p-6 shadow-brutal-2"
+            style={{ borderColor: border, backgroundColor: surface }}
             onPress={() => {}}
           >
-            <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
-              <Ionicons name="people" size={22} className="text-accent dark:text-accent-dark" />
+            <View className="mb-4 h-12 w-12 items-center justify-center rounded-brutal border-2" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+              <Ionicons name="people" size={22} color={primary} />
             </View>
-            <Text className="text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('home.newCircle')}</Text>
-            <Text className="mb-4 mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('home.newCircleHint')}</Text>
+            <Text className="text-lg font-extrabold tracking-tight" style={{ color: ink }}>{t('home.newCircle')}</Text>
+            <Text className="mb-4 mt-1 text-sm" style={{ color: inkMuted }}>{t('home.newCircleHint')}</Text>
             <TextInput
-              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-base text-ink placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+              className="mb-4 rounded-brutal border-2 px-4 py-4 text-base"
+              style={{ borderColor: border, backgroundColor: surface, color: ink }}
               placeholder={t('home.circleName')}
+              placeholderTextColor={inkFaint}
               value={name}
               onChangeText={setName}
               autoFocus
@@ -206,9 +224,10 @@ export default function HomeScreen() {
               onPress={submit}
               disabled={!name.trim()}
               accessibilityRole="button"
-              className="items-center rounded-full bg-accent py-4 opacity-100 disabled:opacity-40 dark:bg-accent-dark"
+              className="items-center rounded-brutal border-2 py-4 shadow-brutal-1"
+              style={{ borderColor: border, backgroundColor: primary, opacity: name.trim() ? 1 : 0.4 }}
             >
-              <Text className="text-base font-extrabold text-white">{t('home.create')}</Text>
+              <Text className="text-base font-extrabold" style={{ color: primaryInk }}>{t('home.create')}</Text>
             </TouchableOpacity>
           </Pressable>
         </Pressable>
@@ -217,17 +236,20 @@ export default function HomeScreen() {
       <Modal transparent visible={joinVisible} animationType="fade" onRequestClose={() => setJoinVisible(false)}>
         <Pressable className="flex-1 items-center justify-center bg-black/50 px-8" onPress={() => setJoinVisible(false)}>
           <Pressable
-            className="w-full rounded-[28px] border border-rule bg-surface-alt p-6 dark:border-rule-dark dark:bg-surface-dark-alt"
+            className="w-full rounded-brutal-xl border-2 p-6 shadow-brutal-2"
+            style={{ borderColor: border, backgroundColor: surface }}
             onPress={() => {}}
           >
-            <View className="mb-4 h-12 w-12 items-center justify-center rounded-2xl bg-accent-soft dark:bg-accent-dark-soft">
-              <Ionicons name="cloud-download-outline" size={22} className="text-accent dark:text-accent-dark" />
+            <View className="mb-4 h-12 w-12 items-center justify-center rounded-brutal border-2" style={{ borderColor: border, backgroundColor: surfaceElevated }}>
+              <Ionicons name="cloud-download-outline" size={22} color={primary} />
             </View>
-            <Text className="text-lg font-extrabold tracking-tight text-ink dark:text-ink-dark">{t('cloud.join')}</Text>
-            <Text className="mb-4 mt-1 text-sm text-ink-muted dark:text-ink-dark-muted">{t('cloud.joinHint')}</Text>
+            <Text className="text-lg font-extrabold tracking-tight" style={{ color: ink }}>{t('cloud.join')}</Text>
+            <Text className="mb-4 mt-1 text-sm" style={{ color: inkMuted }}>{t('cloud.joinHint')}</Text>
             <TextInput
-              className="mb-4 rounded-xl bg-surface-fill px-4 py-4 text-left text-lg font-extrabold uppercase tracking-[0.3em] text-ink placeholder:normal-case placeholder:tracking-normal placeholder:text-ink-faint dark:bg-surface-dark-fill dark:text-ink-dark dark:placeholder:text-ink-dark-faint"
+              className="mb-4 rounded-brutal border-2 px-4 py-4 text-left text-lg font-extrabold uppercase tracking-[0.3em]"
+              style={{ borderColor: border, backgroundColor: surface, color: ink }}
               placeholder={t('cloud.codePlaceholder')}
+              placeholderTextColor={inkFaint}
               value={code}
               onChangeText={(v) => setCode(v.replace(/[^a-zA-Z0-9]/g, '').toLowerCase().slice(0, 6))}
               autoCapitalize="none"
@@ -237,17 +259,18 @@ export default function HomeScreen() {
               onSubmitEditing={submitJoin}
               editable={!joinBusy}
             />
-            {joinError != null && <Text className="mb-3 text-xs text-bad dark:text-bad-dark">{joinError}</Text>}
+            {joinError != null && <Text className="mb-3 text-xs" style={{ color: bad }}>{joinError}</Text>}
             <TouchableOpacity
               onPress={submitJoin}
               disabled={joinBusy || code.length !== 6}
               accessibilityRole="button"
-              className="items-center rounded-full bg-accent py-4 opacity-100 disabled:opacity-40 dark:bg-accent-dark"
+              className="items-center rounded-brutal border-2 py-4 shadow-brutal-1"
+              style={{ borderColor: border, backgroundColor: primary, opacity: joinBusy || code.length !== 6 ? 0.4 : 1 }}
             >
               {joinBusy ? (
-                <ActivityIndicator size="small" color="#ffffff" />
+                <ActivityIndicator size="small" color={primaryInk} />
               ) : (
-                <Text className="text-base font-extrabold text-white">{t('cloud.joinConfirm')}</Text>
+                <Text className="text-base font-extrabold" style={{ color: primaryInk }}>{t('cloud.joinConfirm')}</Text>
               )}
             </TouchableOpacity>
           </Pressable>

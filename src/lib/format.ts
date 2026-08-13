@@ -5,6 +5,7 @@ const dateTimeFmt = new Intl.DateTimeFormat(undefined, {
   year: 'numeric',
   hour: '2-digit',
   minute: '2-digit',
+  hour12: false,
 });
 
 const dateFmt = new Intl.DateTimeFormat(undefined, {
@@ -16,6 +17,7 @@ const dateFmt = new Intl.DateTimeFormat(undefined, {
 const timeFmt = new Intl.DateTimeFormat(undefined, {
   hour: '2-digit',
   minute: '2-digit',
+  hour12: false,
 });
 
 export function formatDateTime(iso: string): string {

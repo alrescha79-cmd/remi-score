@@ -5,11 +5,13 @@ import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'rea
 import { SafeAreaView } from 'react-native-safe-area-context';
 import EmptyState from '@/components/EmptyState';
 import ScreenHeader from '@/components/ScreenHeader';
+import StatCard from '@/components/StatCard';
 import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
 import type { SeasonPlayerStat, SessionSummary } from '@/db/models';
 import { formatDate } from '@/lib/format';
-import { useT } from '@/lib/i18n';
+import { formatCount, useT } from '@/lib/i18n';
 import { formatSignedScore, rankByScore } from '@/lib/score';
+import { useThemeColor } from '@/lib/theme';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
 
@@ -19,6 +21,14 @@ export default function SeasonPlayerScreen() {
   const pid = Number(playerId);
   const router = useRouter();
   const t = useT();
+
+  const bg = useThemeColor('bg');
+  const surface = useThemeColor('surface');
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const primary = useThemeColor('primary');
+  const good = useThemeColor('good');
 
   const [stats, setStats] = useState<SeasonPlayerStat[]>([]);
   const [history, setHistory] = useState<SessionSummary[]>([]);
@@ -43,8 +53,8 @@ export default function SeasonPlayerScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface dark:bg-surface-dark">
-        <ActivityIndicator size="large" color="#0071e3" />
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} className="items-center justify-center">
+        <ActivityIndicator size="large" color={primary} />
       </SafeAreaView>
     );
   }
@@ -56,8 +66,8 @@ export default function SeasonPlayerScreen() {
 
   if (!stat) {
     return (
-      <SafeAreaView className="flex-1 items-center justify-center bg-surface dark:bg-surface-dark">
-        <Text className="text-ink-muted dark:text-ink-dark-muted">{t('player.notFound')}</Text>
+      <SafeAreaView style={{ flex: 1, backgroundColor: bg }} className="items-center justify-center">
+        <Text style={{ color: inkMuted }}>{t('player.notFound')}</Text>
       </SafeAreaView>
     );
   }
@@ -71,12 +81,12 @@ export default function SeasonPlayerScreen() {
     });
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader
         title={stat.player.name}
         onBack={() => router.back()}
         right={
-          <Text className="text-xl font-extrabold tabular-nums text-ink dark:text-ink-dark">
+          <Text style={{ color: ink }} className="text-xl font-extrabold tabular-nums">
             {formatSignedScore(stat.total)}
           </Text>
         }
@@ -89,11 +99,11 @@ export default function SeasonPlayerScreen() {
           medal={season?.rank && season.rank <= 3 ? MEDALS[season.rank - 1] : undefined}
         />
         <StatCard label={t('player.total')} value={formatSignedScore(stat.total)} />
-        <StatCard label={t('circle.wins', { count: stat.wins })} value={String(stat.wins)} />
+        <StatCard label={t('circle.winsMany')} value={String(stat.wins)} />
         <StatCard label={t('player.sessions')} value={String(stat.sessionsPlayed)} />
       </View>
 
-      <Text className="mb-3 mt-7 px-5 text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+      <Text style={{ color: inkMuted }} className="mb-3 mt-7 px-5 text-xs font-bold uppercase tracking-widest">
         {t('player.sessionScores')}
       </Text>
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -106,22 +116,23 @@ export default function SeasonPlayerScreen() {
               disabled={session.status === 'active'}
               onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
               accessibilityRole="button"
-              className="mb-2 flex-row items-center rounded-2xl border border-rule bg-surface-alt px-4 py-4 active:opacity-80 dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none"
+              style={{ borderColor: border, backgroundColor: surface }}
+              className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-4 active:opacity-80"
             >
               <View className="mr-3 w-8 items-center">
                 {rank >= 1 && rank <= 3 ? (
                   <Ionicons name="medal" size={22} color={MEDALS[rank - 1]} />
                 ) : (
-                  <Text className="text-sm font-bold tabular-nums text-ink-muted dark:text-ink-dark-muted">#{rank}</Text>
+                  <Text style={{ color: inkMuted }} className="text-sm font-bold tabular-nums">#{rank}</Text>
                 )}
               </View>
               <View className="min-w-0 flex-1">
-                <Text className="text-sm font-bold text-ink dark:text-ink-dark">{formatDate(session.created_at)}</Text>
-                <Text className="mt-0.5 text-xs font-bold text-good dark:text-good-dark">
+                <Text style={{ color: ink }} className="text-sm font-bold">{formatDate(session.created_at)}</Text>
+                <Text style={{ color: good }} className="mt-0.5 text-xs font-bold">
                   {session.status === 'completed' ? t('circle.finished') : t('circle.active')}
                 </Text>
               </View>
-              <Text className="text-lg font-extrabold tabular-nums text-ink dark:text-ink-dark">
+              <Text style={{ color: ink }} className="text-lg font-extrabold tabular-nums">
                 {formatSignedScore(total)}
               </Text>
             </TouchableOpacity>
@@ -129,19 +140,5 @@ export default function SeasonPlayerScreen() {
         )}
       </ScrollView>
     </SafeAreaView>
-  );
-}
-
-function StatCard({ label, value, medal }: { label: string; value: string; medal?: string }) {
-  return (
-    <View className="flex-1 rounded-2xl border border-rule bg-surface-alt px-3 py-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
-      <Text className="text-[10px] font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
-        {label}
-      </Text>
-      <View className="mt-2 flex-row items-center">
-        {medal && <Ionicons name="medal" size={16} color={medal} className="mr-1" />}
-        <Text className="text-base font-extrabold tabular-nums text-ink dark:text-ink-dark">{value}</Text>
-      </View>
-    </View>
   );
 }

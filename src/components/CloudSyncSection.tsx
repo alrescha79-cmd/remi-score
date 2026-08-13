@@ -8,6 +8,7 @@ import { pullCloudSync, syncCircleToCloud } from '@/lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL, generateShareCode } from '@/lib/cloudSyncCore';
 import { formatDateTime } from '@/lib/format';
 import { t, useT } from '@/lib/i18n';
+import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore, type CloudSyncMode } from '@/store/settingsStore';
 import type { CircleWithStats } from '@/db/models';
 
@@ -33,6 +34,16 @@ export default function CloudSyncSection() {
   const setLastCloudSyncAt = useSettingsStore((s) => s.setLastCloudSyncAt);
   const shareCodes = useSettingsStore((s) => s.shareCodes);
   const setShareCode = useSettingsStore((s) => s.setShareCode);
+
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const primary = useThemeColor('primary');
+  const primaryInk = useThemeColor('primaryInk');
+  const good = useThemeColor('good');
+  const bad = useThemeColor('bad');
 
   const [busy, setBusy] = useState<Busy>(null);
   const [error, setError] = useState<string | null>(null);
@@ -131,13 +142,12 @@ export default function CloudSyncSection() {
   }, [code]);
 
   return (
-    <View className="mb-6 rounded-2xl border border-rule bg-surface-alt p-4 shadow-soft dark:border-rule-dark dark:bg-surface-dark-alt dark:shadow-none">
-      <Text className="text-sm font-extrabold text-ink dark:text-ink-dark">{t('cloud.title')}</Text>
-      <Text className="mb-3 mt-0.5 text-xs text-ink-muted dark:text-ink-dark-muted">{t('cloud.hint')}</Text>
+    <View className="mb-6 rounded-brutal-lg border-2 p-4 shadow-brutal-1" style={{ borderColor: border, backgroundColor: surface }}>
+      <Text className="text-sm font-extrabold" style={{ color: ink }}>{t('cloud.title')}</Text>
+      <Text className="mb-3 mt-0.5 text-xs" style={{ color: inkMuted }}>{t('cloud.hint')}</Text>
 
-      {/* Sync mode toggle */}
-      <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">{t('cloud.syncMode')}</Text>
-      <View className="mt-1.5 flex-row rounded-xl bg-surface-fill p-1.5 dark:bg-surface-dark-fill">
+      <Text className="text-xs font-bold" style={{ color: inkMuted }}>{t('cloud.syncMode')}</Text>
+      <View className="mt-1.5 flex-row rounded-brutal p-1" style={{ backgroundColor: surfaceElevated }}>
         {MODES.map((o) => {
           const active = cloudSyncMode === o.value;
           return (
@@ -146,11 +156,10 @@ export default function CloudSyncSection() {
               onPress={() => setCloudSyncMode(o.value)}
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
-              className={`flex-1 flex-row items-center justify-center gap-2 rounded-lg py-2.5 ${
-                active ? 'bg-accent dark:bg-accent-dark' : 'bg-transparent'
-              }`}
+              className="flex-1 flex-row items-center justify-center rounded-brutal py-2.5"
+              style={active ? { backgroundColor: primary, borderWidth: 2, borderColor: border } : { borderWidth: 2, borderColor: 'transparent' }}
             >
-              <Text className={`text-sm font-bold ${active ? 'text-white' : 'text-ink-muted dark:text-ink-dark-muted'}`}>
+              <Text className="text-sm font-bold" style={{ color: active ? primaryInk : inkMuted }}>
                 {t(o.key)}
               </Text>
             </Pressable>
@@ -158,13 +167,12 @@ export default function CloudSyncSection() {
         })}
       </View>
       {cloudSyncMode === 'auto' && (
-        <Text className="mt-1 text-[11px] text-ink-faint dark:text-ink-dark-faint">{t('cloud.autoHint')}</Text>
+        <Text className="mt-1 text-[11px]" style={{ color: inkMuted }}>{t('cloud.autoHint')}</Text>
       )}
 
-      {/* Circle selector + share code */}
       {circles.length > 0 && (
         <View className="mt-4">
-          <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">{t('cloud.selectCircle')}</Text>
+          <Text className="text-xs font-bold" style={{ color: inkMuted }}>{t('cloud.selectCircle')}</Text>
           <View className="mt-1.5 flex-row flex-wrap gap-2">
             {circles.map((c) => {
               const active = selectedCircleId === c.id;
@@ -172,9 +180,10 @@ export default function CloudSyncSection() {
                 <Pressable
                   key={c.id}
                   onPress={() => setSelectedCircleId(c.id)}
-                  className={`rounded-full px-3 py-1.5 ${active ? 'bg-accent dark:bg-accent-dark' : 'bg-surface-fill dark:bg-surface-dark-fill'}`}
+                  className="rounded-brutal px-3 py-1.5"
+                  style={active ? { backgroundColor: primary, borderWidth: 2, borderColor: border } : { backgroundColor: surfaceElevated, borderWidth: 2, borderColor: border }}
                 >
-                  <Text className={`text-xs font-bold ${active ? 'text-white' : 'text-ink dark:text-ink-dark'}`}>
+                  <Text className="text-xs font-bold" style={{ color: active ? primaryInk : ink }}>
                     {c.name}
                   </Text>
                 </Pressable>
@@ -190,26 +199,24 @@ export default function CloudSyncSection() {
                     onPress={handleCopyCode}
                     accessibilityRole="button"
                     accessibilityLabel={t('cloud.shareCode')}
-                    className="mt-2 rounded-2xl border-2 border-accent/40 bg-surface-fill p-4 dark:border-accent-dark/50 dark:bg-surface-dark-fill"
+                    className="mt-2 rounded-brutal-lg border-2 p-4"
+                    style={{ borderColor: primary, backgroundColor: surfaceElevated }}
                   >
-                    <Text className="text-center text-xs font-bold uppercase tracking-widest text-ink-muted dark:text-ink-dark-muted">
+                    <Text className="text-center text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
                       {t('cloud.shareCode')}
                     </Text>
-                    <Text className="mt-1.5 text-center text-3xl font-extrabold tracking-[0.35em] text-accent-deep dark:text-accent-dark-deep">
+                    <Text className="mt-1.5 text-center text-3xl font-extrabold tracking-[0.35em]" style={{ color: primary }}>
                       {code.toUpperCase()}
                     </Text>
                     <View className="mt-2 flex-row items-center justify-center gap-1">
                       <Ionicons
                         name={copied ? 'checkmark' : 'copy-outline'}
                         size={13}
-                        className={copied ? 'text-good dark:text-good-dark' : 'text-ink-muted dark:text-ink-dark-muted'}
+                        color={copied ? good : inkMuted}
                       />
                       <Text
-                        className={`text-xs font-bold ${
-                          copied
-                            ? 'text-good dark:text-good-dark'
-                            : 'text-ink-muted dark:text-ink-dark-muted'
-                        }`}
+                        className="text-xs font-bold"
+                        style={{ color: copied ? good : inkMuted }}
                       >
                         {copied ? t('cloud.copied') : t('cloud.tapToCopy')}
                       </Text>
@@ -218,14 +225,15 @@ export default function CloudSyncSection() {
                   {shareUrl && (
                     <TouchableOpacity
                       onPress={handleCopy}
-                      className="mt-1 flex-row items-center gap-2 rounded-xl bg-surface-fill p-3 dark:bg-surface-dark-fill"
+                      className="mt-1 flex-row items-center gap-2 rounded-brutal p-3"
+                      style={{ backgroundColor: surfaceElevated }}
                     >
                       <Ionicons
                         name={copied ? 'checkmark-circle' : 'copy-outline'}
                         size={16}
-                        className={copied ? 'text-good dark:text-good-dark' : 'text-accent dark:text-accent-dark'}
+                        color={copied ? good : primary}
                       />
-                      <Text className="flex-1 text-xs text-ink dark:text-ink-dark" numberOfLines={1}>
+                      <Text className="flex-1 text-xs" style={{ color: ink }} numberOfLines={1}>
                         {shareUrl}
                       </Text>
                     </TouchableOpacity>
@@ -237,21 +245,19 @@ export default function CloudSyncSection() {
         </View>
       )}
 
-      {/* Sync button */}
       <View className="mt-4 flex-row gap-3">
         <TouchableOpacity
           onPress={handleSync}
           disabled={busy != null || !code || cloudSyncMode === 'off'}
-          className={`flex-1 flex-row items-center justify-center gap-2 rounded-full py-3 ${
-            busy || !code || cloudSyncMode === 'off' ? 'opacity-40' : 'opacity-100'
-          } bg-accent dark:bg-accent-dark`}
+          className="flex-1 flex-row items-center justify-center gap-2 rounded-brutal border-2 py-3 shadow-brutal-1"
+          style={{ borderColor: border, backgroundColor: primary, opacity: busy || !code || cloudSyncMode === 'off' ? 0.4 : 1 }}
         >
           {busy === 'sync' ? (
-            <ActivityIndicator size="small" color="#ffffff" />
+            <ActivityIndicator size="small" color={primaryInk} />
           ) : (
-            <Ionicons name="cloud-upload-outline" size={16} color="#ffffff" />
+            <Ionicons name="cloud-upload-outline" size={16} color={primaryInk} />
           )}
-          <Text className="text-sm font-extrabold text-white">
+          <Text className="text-sm font-extrabold" style={{ color: primaryInk }}>
             {busy === 'sync' ? t('cloud.syncing') : t('cloud.sync')}
           </Text>
         </TouchableOpacity>
@@ -261,27 +267,26 @@ export default function CloudSyncSection() {
             onPress={handlePull}
             disabled={busy != null}
             accessibilityRole="button"
-            className={`flex-1 flex-row items-center justify-center gap-2 rounded-full border border-accent/40 py-3 ${
-              busy ? 'opacity-40' : 'opacity-100'
-            } dark:border-accent-dark/40`}
+            className="flex-1 flex-row items-center justify-center gap-2 rounded-brutal border-2 py-3"
+            style={{ borderColor: border, opacity: busy ? 0.4 : 1 }}
           >
             {busy === 'pull' ? (
-              <ActivityIndicator size="small" color="#0071e3" />
+              <ActivityIndicator size="small" color={primary} />
             ) : (
-              <Ionicons name="cloud-download-outline" size={16} className="text-accent dark:text-accent-dark" />
+              <Ionicons name="cloud-download-outline" size={16} color={primary} />
             )}
-            <Text className="text-sm font-extrabold text-accent-deep dark:text-accent-dark-deep">
+            <Text className="text-sm font-extrabold" style={{ color: primary }}>
               {busy === 'pull' ? t('cloud.pulling') : t('cloud.pull')}
             </Text>
           </TouchableOpacity>
         )}
       </View>
 
-      {error != null && <Text className="mt-2 text-xs text-bad dark:text-bad-dark">{error}</Text>}
+      {error != null && <Text className="mt-2 text-xs" style={{ color: bad }}>{error}</Text>}
       {done && error == null && (
-        <Text className="mt-2 text-xs text-good dark:text-good-dark">{t('cloud.success')}</Text>
+        <Text className="mt-2 text-xs" style={{ color: good }}>{t('cloud.success')}</Text>
       )}
-      <Text className="mt-2 text-xs text-ink-muted dark:text-ink-dark-muted">
+      <Text className="mt-2 text-xs" style={{ color: inkMuted }}>
         {lastCloudSyncAt ? t('cloud.lastSync', { date: formatDateTime(lastCloudSyncAt) }) : t('cloud.never')}
       </Text>
     </View>

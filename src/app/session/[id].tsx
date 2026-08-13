@@ -8,6 +8,7 @@ import EmptyState from '@/components/EmptyState';
 import PlayerCard from '@/components/PlayerCard';
 import ScreenHeader from '@/components/ScreenHeader';
 import { useT } from '@/lib/i18n';
+import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
 
 export default function SessionScreen() {
@@ -15,6 +16,15 @@ export default function SessionScreen() {
   const sessionId = Number(id);
   const router = useRouter();
   const t = useT();
+  const bg = useThemeColor('bg');
+  const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
+  const ink = useThemeColor('ink');
+  const inkMuted = useThemeColor('inkMuted');
+  const border = useThemeColor('border');
+  const primary = useThemeColor('primary');
+  const bad = useThemeColor('bad');
+  const primaryInk = useThemeColor('primaryInk');
   const { players, ranking, scores, totals, loading, error, load, finish } = useSessionStore();
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
@@ -45,22 +55,20 @@ export default function SessionScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-surface dark:bg-surface-dark" edges={['top']}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader
         title={t('session.live')}
-        subtitle={`${t(lastRound.roundNumber === 1 ? 'session.rounds' : 'session.roundsMany', {
-          count: lastRound.roundNumber,
-        })} · ${t('session.players', { count: players.length })}`}
+        subtitle={`${lastRound.roundNumber} ${t(lastRound.roundNumber === 1 ? 'session.rounds' : 'session.roundsMany')} · ${players.length} ${t(players.length === 1 ? 'session.players' : 'session.playersMany')}`}
         onBack={() => router.back()}
       />
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
-          <ActivityIndicator size="large" color="#0071e3" />
+          <ActivityIndicator size="large" color={primary} />
         </View>
       ) : error ? (
         <View className="flex-1 items-center justify-center px-8">
-          <Text className="text-center text-ink-muted dark:text-ink-dark-muted">{error}</Text>
+          <Text className="text-center" style={{ color: inkMuted }}>{error}</Text>
         </View>
       ) : (
         <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 32 }}>
@@ -89,20 +97,22 @@ export default function SessionScreen() {
           <TouchableOpacity
             onPress={() => router.push({ pathname: '/session/[id]/add-round', params: { id: String(sessionId) } })}
             accessibilityRole="button"
-            className="mt-5 flex-row items-center justify-center rounded-full bg-accent py-4 dark:bg-accent-dark"
+            className="mt-5 flex-row items-center justify-center rounded-brutal border-2 py-4 shadow-brutal-1"
+            style={{ borderColor: border, backgroundColor: primary }}
           >
-            <Ionicons name="add" size={20} color="#ffffff" />
-            <Text className="ml-2 text-base font-extrabold text-white">{t('session.addRound')}</Text>
+            <Ionicons name="add" size={20} color={primaryInk} />
+            <Text className="ml-2 text-base font-extrabold" style={{ color: primaryInk }}>{t('session.addRound')}</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
             onPress={confirmEnd}
             disabled={lastRound.roundNumber === 0}
             accessibilityRole="button"
-            className="mt-3 flex-row items-center justify-center rounded-full border border-bad/40 py-4 disabled:opacity-40 dark:border-bad-dark/40"
+            className="mt-3 flex-row items-center justify-center rounded-brutal border-2 py-4"
+            style={{ borderColor: border, backgroundColor: surfaceElevated, opacity: lastRound.roundNumber === 0 ? 0.4 : 1 }}
           >
-            <Ionicons name="flag" size={18} className="text-bad dark:text-bad-dark" />
-            <Text className="ml-2 text-base font-extrabold text-bad dark:text-bad-dark">{t('session.end')}</Text>
+            <Ionicons name="flag" size={18} color={bad} />
+            <Text className="ml-2 text-base font-extrabold" style={{ color: bad }}>{t('session.end')}</Text>
           </TouchableOpacity>
         </ScrollView>
       )}
