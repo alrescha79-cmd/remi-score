@@ -70,7 +70,7 @@ export default function CircleScreen() {
           if (!code) return;
           const url = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
           const snapshot = await pullCloudSync(url, code);
-          await syncCircleFromSnapshot(circleId, snapshot);
+          await syncCircleFromSnapshot(circleId, snapshot, circleSyncMeta[circleId]?.lastSyncedAt ?? null);
           setCircleSyncMeta(circleId, { ...circleSyncMeta[circleId], lastSyncedAt: snapshot.syncedAt });
           refresh();
         } catch (e) {

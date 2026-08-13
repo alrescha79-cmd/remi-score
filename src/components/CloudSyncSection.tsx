@@ -50,6 +50,13 @@ export default function CloudSyncSection() {
     });
   }, []);
 
+  useEffect(() => {
+    if (cloudSyncMode === 'off' || !selectedCircleId) return;
+    if (!useSettingsStore.getState().shareCodes[selectedCircleId]) {
+      setShareCode(selectedCircleId, generateShareCode());
+    }
+  }, [cloudSyncMode, selectedCircleId]);
+
   const code = selectedCircleId ? shareCodes[selectedCircleId] : undefined;
   const shareUrl = code ? `${DEFAULT_CLOUD_WORKER_URL.replace(/\/$/, '')}/c/${code}` : null;
   const meta = selectedCircleId ? circleSyncMeta[selectedCircleId] : undefined;
@@ -62,11 +69,6 @@ export default function CloudSyncSection() {
     if (!selectedCircleId) return;
     const st = useSettingsStore.getState();
     st.setCircleSyncMeta(selectedCircleId, { ...st.circleSyncMeta[selectedCircleId], lastSyncedAt: syncedAt });
-  };
-
-  const handleGenerate = () => {
-    if (!selectedCircleId) return;
-    setShareCode(selectedCircleId, generateShareCode());
   };
 
   const handleSync = async () => {
@@ -102,7 +104,7 @@ export default function CloudSyncSection() {
     setDone(false);
     try {
       const snapshot = await pullCloudSync(DEFAULT_CLOUD_WORKER_URL, code);
-      await syncCircleFromSnapshot(selectedCircleId, snapshot);
+      await syncCircleFromSnapshot(selectedCircleId, snapshot, getLastSyncedAt());
       setLastSyncedAt(snapshot.syncedAt);
       setLastCloudSyncAt(new Date().toISOString());
       setDone(true);
@@ -213,17 +215,6 @@ export default function CloudSyncSection() {
                       </Text>
                     </View>
                   </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={handleGenerate}
-                    hitSlop={8}
-                    accessibilityRole="button"
-                    className="mt-2.5 flex-row items-center justify-center gap-1"
-                  >
-                    <Ionicons name="refresh-outline" size={14} className="text-ink-muted dark:text-ink-dark-muted" />
-                    <Text className="text-xs font-bold text-ink-muted dark:text-ink-dark-muted">
-                      {t('cloud.regenerate')}
-                    </Text>
-                  </TouchableOpacity>
                   {shareUrl && (
                     <TouchableOpacity
                       onPress={handleCopy}
@@ -240,14 +231,7 @@ export default function CloudSyncSection() {
                     </TouchableOpacity>
                   )}
                 </View>
-              ) : (
-                <TouchableOpacity onPress={handleGenerate} className="flex-row items-center gap-2">
-                  <Ionicons name="add-circle-outline" size={16} className="text-accent dark:text-accent-dark" />
-                  <Text className="text-xs font-bold text-accent-deep dark:text-accent-dark-deep">
-                    {t('cloud.generateCode')}
-                  </Text>
-                </TouchableOpacity>
-              )}
+              ) : null}
             </View>
           )}
         </View>

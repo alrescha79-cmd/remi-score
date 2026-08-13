@@ -72,6 +72,12 @@ export interface MergeInput {
   pushMap: SyncIdMapEntry[];
   /** All ids currently used per table across the whole local DB (every circle). */
   takenIds: Record<SyncTableName, Set<number>>;
+  /**
+   * True when the remote snapshot changed since our last sync (i.e. another
+   * device pushed). When false, any local-vs-remote difference is a LOCAL
+   * edit that must win so it gets pushed instead of being reverted.
+   */
+  remoteChanged: boolean;
 }
 
 export interface MergeResult {
@@ -103,9 +109,17 @@ const NATURAL_KEYS: Partial<Record<SyncTableName, string[]>> = {
   session_players: ['session_id', 'player_id'],
 };
 
+function normVal(v: string | number | null): string | number | null {
+  if (typeof v === 'string') {
+    const ms = Date.parse(v);
+    if (Number.isFinite(ms)) return ms;
+  }
+  return v;
+}
+
 function canonical(row: SyncRow): string {
-  const { id: _id, ...rest } = row;
-  return JSON.stringify(Object.keys(rest).sort().map((k) => [k, rest[k]]));
+  const { id: _id, circle_id: _c, ...rest } = row;
+  return JSON.stringify(Object.keys(rest).sort().map((k) => [k, normVal(rest[k])]));
 }
 
 function naturalKey(table: SyncTableName, row: SyncRow): string {
@@ -155,7 +169,7 @@ function dropMapEntry(pushMap: SyncIdMapEntry[], table: SyncTableName, localId: 
  * - local-only rows are kept, remote-only rows are inserted
  */
 export function mergeSnapshots(input: MergeInput): MergeResult {
-  const { local, remote } = input;
+  const { local, remote, remoteChanged } = input;
   const pushMap = [...input.pushMap];
   const { remoteToLocal } = buildMaps(pushMap);
 
@@ -196,17 +210,14 @@ export function mergeSnapshots(input: MergeInput): MergeResult {
           rows[idx] = { ...rem, id: locId };
           placedId = locId;
         } else {
-          // Different entities sharing an id across devices: keep both.
-          const fresh = nextFree(used[table]);
-          used[table].add(fresh);
-          localRemap[table]!.set(locId, fresh);
-          const idx = rows.indexOf(existing);
-          rows[idx] = { ...existing, id: fresh };
-          byId.set(fresh, rows[idx]);
-          dropMapEntry(pushMap, table, locId);
-          upsertMapEntry(pushMap, { table, localId: fresh, remoteId: remId });
-          rows.push({ ...rem, id: locId });
-          byId.set(locId, rows[rows.length - 1]);
+          const localWins =
+            !remoteChanged ||
+            (table === 'sessions' && existing.status === 'completed' && rem.status === 'active');
+          if (!localWins) {
+            const idx = rows.indexOf(existing);
+            rows[idx] = { ...rem, id: locId };
+            byId.set(locId, rows[idx]);
+          }
           placedId = locId;
         }
       } else if (used[table].has(locId)) {

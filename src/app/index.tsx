@@ -63,7 +63,7 @@ export default function HomeScreen() {
     try {
       const snapshot = await pullCloudSync(url, trimmed);
       const id = await createCircle(snapshot.circleName);
-      await syncCircleFromSnapshot(id, snapshot);
+      await syncCircleFromSnapshot(id, snapshot, null);
       setShareCode(id, trimmed);
       setCircleSyncMeta(id, { remoteCircleId: snapshot.circleId, lastSyncedAt: snapshot.syncedAt });
       setCode('');
