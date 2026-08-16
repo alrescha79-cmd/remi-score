@@ -46,8 +46,10 @@ function derive(players: Player[], scores: ScoreRow[]) {
   const minus = new Map<number, number>();
   const played = new Map<number, number>();
   for (const s of scores) {
-    if (s.score_change < 0) minus.set(s.player_id, (minus.get(s.player_id) ?? 0) + s.score_change);
-    if (s.score_change !== 0) played.set(s.player_id, (played.get(s.player_id) ?? 0) + 1);
+    if (s.score_change !== null) {
+      if (s.score_change < 0) minus.set(s.player_id, (minus.get(s.player_id) ?? 0) + s.score_change);
+      played.set(s.player_id, (played.get(s.player_id) ?? 0) + 1);
+    }
   }
   const tieBreakers: TieBreaker<Player>[] = [
     { value: (p) => minus.get(p.id) ?? 0, direction: 'asc' },

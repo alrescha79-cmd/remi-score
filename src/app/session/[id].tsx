@@ -37,7 +37,7 @@ export default function SessionScreen() {
   const lastRound = useMemo(() => {
     let max = 0;
     for (const s of scores) if (s.round_number > max) max = s.round_number;
-    const delta = new Map<number, number>();
+    const delta = new Map<number, number | null>();
     for (const s of scores) if (s.round_number === max) delta.set(s.player_id, s.score_change);
     return { roundNumber: max, delta };
   }, [scores]);
@@ -83,7 +83,7 @@ export default function SessionScreen() {
                   rank={rank}
                   name={item.name}
                   total={totals[item.id] ?? 0}
-                  delta={lastRound.roundNumber > 0 ? lastRound.delta.get(item.id) ?? 0 : null}
+                  delta={lastRound.roundNumber > 0 ? (lastRound.delta.get(item.id) ?? null) : null}
                   roundNumber={lastRound.roundNumber}
                   afk={active[item.id] === false}
                   onPress={() =>

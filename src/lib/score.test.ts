@@ -36,8 +36,10 @@ test('rankByScore: highest first, ties share rank and skip', () => {
   );
 });
 
-test('formatSignedScore renders + for positives, - and bare 0', () => {
+test('formatSignedScore renders + for positives, - and bare 0, and - for null/undefined', () => {
   assert.equal(formatSignedScore(25), '+25');
   assert.equal(formatSignedScore(-15), '-15');
   assert.equal(formatSignedScore(0), '0');
+  assert.equal(formatSignedScore(null), '-');
+  assert.equal(formatSignedScore(undefined), '-');
 });

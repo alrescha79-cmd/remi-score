@@ -171,7 +171,7 @@ app.get('/c/:code', async (c) => {
   const statsRows = await db.prepare(`
     SELECT p.id, p.name,
       COALESCE(SUM(s.score_change), 0) AS total,
-      COUNT(DISTINCT CASE WHEN s.score_change != 0 THEN r.session_id END) AS sessions_played
+      COUNT(DISTINCT CASE WHEN s.score_change IS NOT NULL THEN r.session_id END) AS sessions_played
     FROM players p
     LEFT JOIN scores s ON s.player_id = p.id
     LEFT JOIN rounds r ON s.round_id = r.id
@@ -345,7 +345,7 @@ app.get('/c/:code/session/:sessionId', async (c) => {
 
   const playersMap = new Map<number, { id: number; name: string }>();
   const playerTotalsMap = new Map<number, number>();
-  const roundsMap = new Map<number, { player: { id: number; name: string }; change: number; total: number }[]>();
+  const roundsMap = new Map<number, { player: { id: number; name: string }; change: number | null; total: number }[]>();
 
   for (const row of (scoreRows.results ?? []) as any[]) {
     playersMap.set(row.player_id, { id: row.player_id, name: row.name });
@@ -412,10 +412,10 @@ app.get('/c/:code/player/:playerId', async (c) => {
   const stats = await db.prepare(`
     SELECT
       COALESCE(SUM(s.score_change), 0) as total,
-      COUNT(*) as rounds_played,
+      COUNT(CASE WHEN s.score_change IS NOT NULL THEN 1 END) as rounds_played,
       COALESCE(MAX(s.score_change), 0) as best,
       COALESCE(MIN(s.score_change), 0) as worst,
-      COUNT(DISTINCT r.session_id) as sessions_played
+      COUNT(DISTINCT CASE WHEN s.score_change IS NOT NULL THEN r.session_id END) as sessions_played
     FROM scores s
     JOIN rounds r ON s.round_id = r.id
     WHERE s.player_id = ?

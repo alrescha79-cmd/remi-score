@@ -33,7 +33,7 @@ export interface Score {
   id: number;
   round_id: number;
   player_id: number;
-  score_change: number;
+  score_change: number | null;
   cumulative_total: number;
 }
 
@@ -53,7 +53,7 @@ export interface SessionPlayer {
 
 export interface RoundEntry {
   playerId: number;
-  scoreChange: number;
+  scoreChange: number | null;
 }
 
 export interface ScoreRow extends Score {

@@ -43,8 +43,8 @@ export default function AddRoundScreen() {
     }, [load, sessionId])
   );
 
-  const entries: Record<number, number> = {};
-  for (const p of players) entries[p.id] = active[p.id] === false ? 0 : overrides[p.id] ?? 0;
+  const entries: Record<number, number | null> = {};
+  for (const p of players) entries[p.id] = active[p.id] === false ? null : overrides[p.id] ?? 0;
 
   const setEntry = (playerId: number, value: number) =>
     setOverrides((prev) => ({ ...prev, [playerId]: value }));
@@ -199,7 +199,7 @@ export default function AddRoundScreen() {
 
               {isActive && (
                 <View className="mt-2">
-                  <StepperRow value={delta} onChange={(v) => setEntry(p.id, v)} />
+                  <StepperRow value={delta ?? 0} onChange={(v) => setEntry(p.id, v)} />
                 </View>
               )}
             </View>

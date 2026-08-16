@@ -39,7 +39,7 @@ const SCHEMA = `
     id INTEGER PRIMARY KEY,
     round_id INTEGER NOT NULL,
     player_id INTEGER NOT NULL,
-    score_change INTEGER NOT NULL,
+    score_change INTEGER,
     cumulative_total INTEGER NOT NULL
   );
 
@@ -66,7 +66,7 @@ export interface SyncTables {
   players: { id: number; name: string; circle_id: number; created_at: string }[];
   sessions: { id: number; circle_id: number; label: string | null; status: string; created_at: string; completed_at: string | null }[];
   rounds: { id: number; session_id: number; round_number: number; timestamp: string }[];
-  scores: { id: number; round_id: number; player_id: number; score_change: number; cumulative_total: number }[];
+  scores: { id: number; round_id: number; player_id: number; score_change: number | null; cumulative_total: number }[];
   session_players: { session_id: number; player_id: number; is_active: number }[];
 }
 

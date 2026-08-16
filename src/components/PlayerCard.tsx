@@ -59,9 +59,9 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
             </View>
           )}
         </View>
-        {delta != null && roundNumber != null && (
+        {roundNumber != null && roundNumber > 0 && (
           <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>
-            {t('session.roundLabel', { n: roundNumber })}: {formatSignedScore(delta)}
+            {t('session.roundLabel', { n: roundNumber })}: {delta === null || afk ? t('round.absentShort') : formatSignedScore(delta)}
           </Text>
         )}
       </View>

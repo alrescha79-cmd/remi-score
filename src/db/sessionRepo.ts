@@ -130,13 +130,14 @@ export async function addRound(sessionId: number, entries: RoundEntry[]): Promis
 
     for (const entry of entries) {
       const base = prevByPlayer.get(entry.playerId) ?? 0;
-      const change = active.get(entry.playerId) === false ? 0 : entry.scoreChange;
+      const isAfk = active.get(entry.playerId) === false || entry.scoreChange === null;
+      const change = isAfk ? null : entry.scoreChange;
       await db.runAsync(
         'INSERT INTO scores (round_id, player_id, score_change, cumulative_total) VALUES (?, ?, ?, ?)',
         roundId,
         entry.playerId,
         change,
-        base + change
+        base + (change ?? 0)
       );
     }
   });
@@ -201,13 +202,14 @@ export async function updateRound(
 
     // Apply the new score_change values to the edited round.
     for (const entry of entries) {
-      const change = active.get(entry.playerId) === false ? 0 : entry.scoreChange;
+      const isAfk = active.get(entry.playerId) === false || entry.scoreChange === null;
+      const change = isAfk ? null : entry.scoreChange;
       const base = prevByPlayer.get(entry.playerId) ?? 0;
       await db.runAsync(
         `UPDATE scores SET score_change = ?, cumulative_total = ?
          WHERE round_id = ? AND player_id = ?`,
         change,
-        base + change,
+        base + (change ?? 0),
         round.id,
         entry.playerId
       );
@@ -229,12 +231,12 @@ export async function updateRound(
     for (const r of editedRows) running.set(r.player_id, r.cumulative_total);
 
     for (const lr of laterRounds) {
-      const rows = await db.getAllAsync<{ player_id: number; score_change: number }>(
+      const rows = await db.getAllAsync<{ player_id: number; score_change: number | null }>(
         'SELECT player_id, score_change FROM scores WHERE round_id = ?',
         lr.id
       );
       for (const r of rows) {
-        const next = (running.get(r.player_id) ?? 0) + r.score_change;
+        const next = (running.get(r.player_id) ?? 0) + (r.score_change ?? 0);
         await db.runAsync(
           'UPDATE scores SET cumulative_total = ? WHERE round_id = ? AND player_id = ?',
           next,
@@ -292,12 +294,12 @@ export async function deleteRound(sessionId: number, roundNumber: number): Promi
       roundNumber
     );
     for (const lr of laterRounds) {
-      const rows = await db.getAllAsync<{ player_id: number; score_change: number }>(
+      const rows = await db.getAllAsync<{ player_id: number; score_change: number | null }>(
         'SELECT player_id, score_change FROM scores WHERE round_id = ?',
         lr.id
       );
       for (const r of rows) {
-        const next = (running.get(r.player_id) ?? 0) + r.score_change;
+        const next = (running.get(r.player_id) ?? 0) + (r.score_change ?? 0);
         await db.runAsync(
           'UPDATE scores SET cumulative_total = ? WHERE round_id = ? AND player_id = ?',
           next,

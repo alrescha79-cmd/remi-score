@@ -44,17 +44,17 @@ export default function EditRoundScreen() {
 
   // Existing score_change for each player in the selected round.
   const existing = useMemo(() => {
-    const m = new Map<number, number>();
+    const m = new Map<number, number | null>();
     for (const s of scores) {
       if (s.round_number === roundNumber) m.set(s.player_id, s.score_change);
     }
     return m;
   }, [scores, roundNumber]);
 
-  const entries: Record<number, number> = {};
+  const entries: Record<number, number | null> = {};
   for (const p of players) {
     const isAfk = active[p.id] === false;
-    entries[p.id] = isAfk ? 0 : overrides[p.id] ?? existing.get(p.id) ?? 0;
+    entries[p.id] = isAfk ? null : overrides[p.id] ?? existing.get(p.id) ?? 0;
   }
 
   const setEntry = (playerId: number, value: number) =>
@@ -192,7 +192,7 @@ export default function EditRoundScreen() {
 
               {isActive ? (
                 <View className="mt-2">
-                  <StepperRow value={delta} onChange={(v) => setEntry(p.id, v)} />
+                  <StepperRow value={delta ?? 0} onChange={(v) => setEntry(p.id, v)} />
                 </View>
               ) : (
                 <Text className="mt-2 text-xs font-bold" style={{ color: inkFaint }}>
