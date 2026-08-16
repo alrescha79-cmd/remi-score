@@ -3,7 +3,7 @@ import type { FC } from 'hono/jsx';
 import Layout from './layout';
 
 interface Player { id: number; name: string }
-interface RoundScore { roundNumber: number; scores: { player: Player; change: number; total: number }[] }
+interface RoundScore { roundNumber: number; scores: { player: Player; change: number | null; total: number }[] }
 
 interface SessionPageProps {
   code: string;
@@ -73,12 +73,18 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, sessionSeq, sessi
                   </td>
                   {rounds.map((r) => {
                     const sc = r.scores.find((s) => s.player.id === p.id);
-                    const change = sc?.change ?? 0;
+                    const change = sc ? sc.change : null;
                     return (
                       <td class="px-3 py-3 text-center font-mono text-xs">
-                        <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
-                          {change > 0 ? `+${change}` : change}
-                        </span>
+                        {change === null ? (
+                          <span class="inline-block px-1.5 py-0.5 rounded font-extrabold text-[10px] text-muted bg-bg border border-ink/20">
+                            AFK
+                          </span>
+                        ) : (
+                          <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
+                            {change > 0 ? `+${change}` : change}
+                          </span>
+                        )}
                       </td>
                     );
                   })}

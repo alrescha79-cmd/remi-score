@@ -282,6 +282,9 @@ export function mergeSnapshots(input: MergeInput): MergeResult {
           const idx = rows.indexOf(existing);
           rows[idx] = hasId ? { ...translated, id: existingId } : translated;
           placedId = existingId;
+        } else if (!hasId && !remoteChanged) {
+          // Local session_players wins when remote is unchanged since last sync.
+          placedId = existingId;
         } else {
           // Remote wins. If the surviving row changes id, rewrite references.
           const locId = hasId ? toLocal(table, remId) : 0;

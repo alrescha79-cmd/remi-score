@@ -81,6 +81,7 @@ export function rankByScore<T>(
   });
 }
 
-export function formatSignedScore(value: number): string {
+export function formatSignedScore(value: number | null | undefined): string {
+  if (value === null || value === undefined) return '-';
   return value > 0 ? `+${value}` : `${value}`;
 }

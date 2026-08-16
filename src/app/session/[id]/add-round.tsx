@@ -31,43 +31,58 @@ export default function AddRoundScreen() {
   const badInk = useThemeColor('badInk');
   const primaryInk = useThemeColor('primaryInk');
   const [overrides, setOverrides] = useState<Record<number, number>>({});
+  const [activeOverrides, setActiveOverrides] = useState<Record<number, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   // Always refresh from DB on focus so the persisted AFK state is reflected
-  // every time the screen is opened (AFK now persists across rounds until
+  // every time the screen is opened (AFK persists across rounds until
   // the player is explicitly re-activated).
   useFocusEffect(
     useCallback(() => {
       load(sessionId);
+      setActiveOverrides({});
     }, [load, sessionId])
   );
 
-  const entries: Record<number, number> = {};
-  for (const p of players) entries[p.id] = active[p.id] === false ? 0 : overrides[p.id] ?? 0;
+  const isPlayerActive = (playerId: number) => {
+    if (activeOverrides[playerId] !== undefined) return activeOverrides[playerId];
+    return active[playerId] !== false;
+  };
+
+  const handleToggleActive = (playerId: number, isPlay: boolean) => {
+    setActiveOverrides((prev) => ({ ...prev, [playerId]: isPlay }));
+    setActive(playerId, isPlay);
+  };
+
+  const entries: Record<number, number | null> = {};
+  for (const p of players) entries[p.id] = !isPlayerActive(p.id) ? null : overrides[p.id] ?? 0;
 
   const setEntry = (playerId: number, value: number) =>
     setOverrides((prev) => ({ ...prev, [playerId]: value }));
 
   const roundNumber = scores.reduce((max, s) => Math.max(max, s.round_number), 0) + 1;
-  const invalid = players.some((p) => active[p.id] !== false && !validateScore(entries[p.id]));
+  const invalid = players.some((p) => isPlayerActive(p.id) && !validateScore(entries[p.id]));
 
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
-      const aActive = active[a.id] !== false;
-      const bActive = active[b.id] !== false;
+      const aActive = isPlayerActive(a.id);
+      const bActive = isPlayerActive(b.id);
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
       return 0;
     });
-  }, [players, active]);
+  }, [players, active, activeOverrides]);
 
-  const playingCount = players.filter((p) => active[p.id] !== false).length;
+  const playingCount = players.filter((p) => isPlayerActive(p.id)).length;
 
   const setAllActive = (isPlay: boolean) => {
+    const next: Record<number, boolean> = {};
     for (const p of players) {
+      next[p.id] = isPlay;
       setActive(p.id, isPlay);
     }
+    setActiveOverrides(next);
   };
 
   const resetAllScores = () => {
@@ -136,7 +151,7 @@ export default function AddRoundScreen() {
 
       <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 20 }}>
         {sortedPlayers.map((p) => {
-          const isActive = active[p.id] !== false;
+          const isActive = isPlayerActive(p.id);
           const currentTotal = totals[p.id] ?? 0;
           const delta = entries[p.id];
 
@@ -172,7 +187,7 @@ export default function AddRoundScreen() {
 
                 <View className="ml-2 flex-row rounded-brutal border-2 p-0.5" style={{ borderColor: border }}>
                   <TouchableOpacity
-                    onPress={() => setActive(p.id, true)}
+                    onPress={() => handleToggleActive(p.id, true)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: isActive }}
                     className="rounded-brutal px-2.5 py-1"
@@ -184,7 +199,7 @@ export default function AddRoundScreen() {
                   </TouchableOpacity>
 
                   <TouchableOpacity
-                    onPress={() => setActive(p.id, false)}
+                    onPress={() => handleToggleActive(p.id, false)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: !isActive }}
                     className="rounded-brutal px-2.5 py-1"
@@ -199,7 +214,7 @@ export default function AddRoundScreen() {
 
               {isActive && (
                 <View className="mt-2">
-                  <StepperRow value={delta} onChange={(v) => setEntry(p.id, v)} />
+                  <StepperRow value={delta ?? 0} onChange={(v) => setEntry(p.id, v)} />
                 </View>
               )}
             </View>

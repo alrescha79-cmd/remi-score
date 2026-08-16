@@ -10,7 +10,8 @@ import { formatSignedScore } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
 
-function scoreColor(value: number, good: string, bad: string, muted: string): string {
+function scoreColor(value: number | null, good: string, bad: string, muted: string): string {
+  if (value === null) return muted;
   return value > 0 ? good : value < 0 ? bad : muted;
 }
 
@@ -48,8 +49,12 @@ export default function PlayerDetailScreen() {
     [scores, pid]
   );
 
-  const best = rounds.length > 0 ? Math.max(...rounds.map((r) => r.score_change)) : 0;
-  const worst = rounds.length > 0 ? Math.min(...rounds.map((r) => r.score_change)) : 0;
+  const playedRounds = useMemo(
+    () => rounds.filter((r) => r.score_change !== null),
+    [rounds]
+  );
+  const best = playedRounds.length > 0 ? Math.max(...playedRounds.map((r) => r.score_change!)) : 0;
+  const worst = playedRounds.length > 0 ? Math.min(...playedRounds.map((r) => r.score_change!)) : 0;
 
   if (loading || !player) {
     return (
@@ -78,7 +83,7 @@ export default function PlayerDetailScreen() {
 
       <View className="flex-row gap-2 px-5 pt-1">
         <StatCard label={t('player.total')} value={formatSignedScore(total)} color={scoreColor(total, good, bad, inkMuted)} />
-        <StatCard label={t('player.rounds')} value={String(rounds.length)} />
+        <StatCard label={t('player.rounds')} value={String(playedRounds.length)} />
         <StatCard label={t('player.best')} value={formatSignedScore(best)} color={good} />
         <StatCard label={t('player.worst')} value={formatSignedScore(worst)} color={bad} />
       </View>
@@ -109,7 +114,7 @@ export default function PlayerDetailScreen() {
                 className="w-16 text-right text-base font-extrabold tabular-nums"
                 style={{ color: scoreColor(r.score_change, good, bad, inkMuted) }}
               >
-                {formatSignedScore(r.score_change)}
+                {r.score_change === null ? t('round.absentShort') : formatSignedScore(r.score_change)}
               </Text>
               <Text className="w-16 text-right text-sm font-bold tabular-nums" style={{ color: ink }}>
                 {formatSignedScore(r.cumulative_total)}

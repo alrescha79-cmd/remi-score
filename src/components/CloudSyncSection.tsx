@@ -101,7 +101,6 @@ export default function CloudSyncSection() {
       setLastCloudSyncAt(new Date().toISOString());
       setDone(true);
     } catch (e) {
-      console.error('[CloudSyncSection] handleSync failed:', e);
       setError(errText(e));
     } finally {
       setBusy(null);
@@ -120,7 +119,6 @@ export default function CloudSyncSection() {
       setLastCloudSyncAt(new Date().toISOString());
       setDone(true);
     } catch (e) {
-      console.error('[CloudSyncSection] handlePull failed:', e);
       setError(errText(e));
     } finally {
       setBusy(null);

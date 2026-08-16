@@ -75,7 +75,11 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
               </div>
               <div class="text-right">
                 <span class="text-lg font-extrabold font-display text-ink">{entry.total}</span>
-                {entry.lastDelta !== null && entry.lastDelta !== 0 && (
+                {entry.lastDelta === null ? (
+                  <span class="ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-ink/30 bg-bg text-muted">
+                    AFK
+                  </span>
+                ) : entry.lastDelta !== 0 && (
                   <span class={`ml-2 text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
                     {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
                   </span>
