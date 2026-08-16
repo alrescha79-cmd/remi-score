@@ -14,6 +14,20 @@ export interface Ranked<T> {
   rank: number;
 }
 
+/**
+ * Optional tie-breaker descriptors for ranking.
+ * Each entry defines a field accessor plus direction; entries are applied in
+ * order until the tie is resolved. The default ranking is by score DESC.
+ *
+ * For klasemen sesi the spec is: poin sama → menang sesi terbanyak (DESC),
+ * → total minus paling sedikit (ASC, i.e. least negative), → jumlah main
+ * paling sedikit (ASC).
+ */
+export interface TieBreaker<T> {
+  value: (item: T) => number;
+  direction: 'desc' | 'asc';
+}
+
 export function validateScore(value: unknown): value is number {
   return (
     typeof value === 'number' &&
@@ -37,14 +51,31 @@ export function computeTotals(scores: ScoreLike[]): Map<number, number> {
   return totals;
 }
 
-export function rankByScore<T>(entries: { item: T; score: number }[]): Ranked<T>[] {
-  const sorted = [...entries].sort((a, b) => b.score - a.score);
+export function rankByScore<T>(
+  entries: { item: T; score: number }[],
+  tieBreakers: TieBreaker<T>[] = []
+): Ranked<T>[] {
+  const sorted = [...entries].sort((a, b) => {
+    const diff = b.score - a.score;
+    if (diff !== 0) return diff;
+    for (const tb of tieBreakers) {
+      const va = tb.value(a.item);
+      const vb = tb.value(b.item);
+      const d = tb.direction === 'desc' ? vb - va : va - vb;
+      if (d !== 0) return d;
+    }
+    return 0;
+  });
   let rank = 0;
-  let prevScore: number | null = null;
+  let prevKey: string | null = null;
   return sorted.map((e, i) => {
-    if (e.score !== prevScore) {
+    const key = JSON.stringify([
+      e.score,
+      ...tieBreakers.map((tb) => tb.value(e.item)),
+    ]);
+    if (key !== prevKey) {
       rank = i + 1;
-      prevScore = e.score;
+      prevKey = key;
     }
     return { item: e.item, score: e.score, rank };
   });

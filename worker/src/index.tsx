@@ -270,13 +270,20 @@ app.get('/c/:code', async (c) => {
     });
   }
 
-  // Recent sessions
+  // Recent sessions — assign a per-circle sequential number (1-based, oldest
+  // first) so the history list reads "Sesi 1, 2, 3…" instead of raw DB ids.
+  // When a session is deleted the remaining sessions are renumbered naturally.
   const sessionsRows = await db.prepare(
-    'SELECT id, label, status, created_at, completed_at FROM sessions WHERE circle_id = ? ORDER BY created_at DESC LIMIT 20'
+    'SELECT id, label, status, created_at, completed_at FROM sessions WHERE circle_id = ? ORDER BY created_at ASC, id ASC LIMIT 50'
   ).bind(circleId).all();
 
+  const seqById = new Map<number, number>();
+  (sessionsRows.results ?? []).forEach((s: any, i: number) => {
+    seqById.set(s.id, i + 1);
+  });
+
   const recentSessions = [];
-  for (const s of (sessionsRows.results ?? []) as any[]) {
+  for (const s of ((sessionsRows.results ?? []) as any[]).slice().reverse()) {
     let winnerName = null;
     if (s.status === 'completed') {
       const w = await db.prepare(`
@@ -289,7 +296,7 @@ app.get('/c/:code', async (c) => {
       `).bind(s.id, s.id).first();
       if (w) winnerName = w.name as string;
     }
-    recentSessions.push({ ...s, winnerName });
+    recentSessions.push({ ...s, seq: seqById.get(s.id) ?? 0, winnerName });
   }
 
   return c.html(
@@ -319,6 +326,13 @@ app.get('/c/:code/session/:sessionId', async (c) => {
   const session = await db.prepare('SELECT * FROM sessions WHERE id = ? AND circle_id = ?')
     .bind(sessionId, circleId).first();
   if (!session) return c.html(<NotFound />, 404);
+
+  // Per-circle sequential session number for display.
+  const seqRow = await db.prepare(`
+    SELECT COUNT(*) + 1 AS seq FROM sessions
+    WHERE circle_id = ? AND (created_at < ? OR (created_at = ? AND id < ?))
+  `).bind(circleId, session.created_at, session.created_at, sessionId).first();
+  const sessionSeq = (seqRow?.seq as number) ?? 0;
 
   const scoreRows = await db.prepare(`
     SELECT s.player_id, s.score_change, s.cumulative_total, r.round_number, p.id, p.name
@@ -357,7 +371,8 @@ app.get('/c/:code/session/:sessionId', async (c) => {
     <SessionPage
       code={code}
       circleName={circleName}
-      sessionLabel={(session.label as string) ?? `Session #${sessionId}`}
+      sessionSeq={sessionSeq}
+      sessionLabel={(session.label as string) ?? `Sesi #${sessionSeq}`}
       status={session.status as string}
       rounds={rounds}
       players={players}
@@ -431,9 +446,22 @@ app.get('/c/:code/player/:playerId', async (c) => {
     ORDER BY se.created_at DESC
   `).bind(playerId).all();
 
+  // Per-circle sequential session number for each session the player joined.
+  const sessionIds = (sessionScoresRows.results ?? []).map((r: any) => r.session_id as number);
+  const sessionSeqMap = new Map<number, number>();
+  if (sessionIds.length > 0) {
+    const allSessionsRows = await db.prepare(
+      'SELECT id FROM sessions WHERE circle_id = ? ORDER BY created_at ASC, id ASC'
+    ).bind(circleId).all();
+    (allSessionsRows.results ?? []).forEach((s: any, i: number) => {
+      if (sessionIds.includes(s.id)) sessionSeqMap.set(s.id, i + 1);
+    });
+  }
+
   const sessionScores = (sessionScoresRows.results ?? []).map((r: any) => ({
     sessionId: r.session_id,
-    label: r.label ?? `Session #${r.session_id}`,
+    seq: sessionSeqMap.get(r.session_id) ?? 0,
+    label: r.label ?? `Sesi #${sessionSeqMap.get(r.session_id) ?? r.session_id}`,
     total: r.total,
     status: r.status,
   }));

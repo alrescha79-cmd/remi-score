@@ -16,7 +16,7 @@ import { pullCloudSync } from '@/lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL } from '@/lib/cloudSyncCore';
 import { formatDateTime } from '@/lib/format';
 import { formatCount, useT } from '@/lib/i18n';
-import { rankByScore } from '@/lib/score';
+import { rankByScore, type TieBreaker } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore } from '@/store/settingsStore';
 
@@ -152,9 +152,15 @@ export default function CircleScreen() {
     });
   };
 
-  const ranked = rankByScore(stats.map((s) => ({ item: s, score: s.total }))).filter(
-    (r) => r.item.sessionsPlayed > 0 || r.item.total !== 0
-  );
+  const seasonTieBreakers: TieBreaker<SeasonPlayerStat>[] = [
+    { value: (s) => s.wins, direction: 'desc' },
+    { value: (s) => s.minus, direction: 'asc' },
+    { value: (s) => s.sessionsPlayed, direction: 'asc' },
+  ];
+  const ranked = rankByScore(
+    stats.map((s) => ({ item: s, score: s.total })),
+    seasonTieBreakers
+  ).filter((r) => r.item.sessionsPlayed > 0 || r.item.total !== 0);
   const canStart = players.length >= 2;
   const canAct = canStart || activeSessionId != null;
 

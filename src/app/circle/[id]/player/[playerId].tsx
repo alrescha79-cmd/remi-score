@@ -10,7 +10,7 @@ import { getSeasonStats, getSessionSummaries } from '@/db/leaderboardRepo';
 import type { SeasonPlayerStat, SessionSummary } from '@/db/models';
 import { formatDate } from '@/lib/format';
 import { formatCount, useT } from '@/lib/i18n';
-import { formatSignedScore, rankByScore } from '@/lib/score';
+import { formatSignedScore, rankByScore, type TieBreaker } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
@@ -59,9 +59,15 @@ export default function SeasonPlayerScreen() {
     );
   }
 
-  const season = rankByScore(stats.map((s) => ({ item: s, score: s.total }))).find(
-    (r) => r.item.player.id === pid
-  );
+  const seasonTieBreakers: TieBreaker<SeasonPlayerStat>[] = [
+    { value: (s) => s.wins, direction: 'desc' },
+    { value: (s) => s.minus, direction: 'asc' },
+    { value: (s) => s.sessionsPlayed, direction: 'asc' },
+  ];
+  const season = rankByScore(
+    stats.map((s) => ({ item: s, score: s.total })),
+    seasonTieBreakers
+  ).find((r) => r.item.player.id === pid);
   const stat = season?.item;
 
   if (!stat) {

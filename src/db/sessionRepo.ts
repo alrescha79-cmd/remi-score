@@ -159,3 +159,153 @@ export async function latestRounds(sessionId: number, limit: number): Promise<Ro
     limit
   );
 }
+
+/**
+ * Replace the score_change values of an existing round and recompute the
+ * cumulative_total for that round and every round after it in the session.
+ * AFK players (is_active = 0) are forced to a 0 change just like addRound.
+ */
+export async function updateRound(
+  sessionId: number,
+  roundNumber: number,
+  entries: RoundEntry[]
+): Promise<void> {
+  if (entries.length === 0) throw new Error('updateRound: no score entries');
+
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    const round = await db.getFirstAsync<{ id: number }>(
+      'SELECT id FROM rounds WHERE session_id = ? AND round_number = ?',
+      sessionId,
+      roundNumber
+    );
+    if (!round) throw new Error(`updateRound: round ${roundNumber} not found`);
+
+    const flags = await db.getAllAsync<SessionPlayerFlag>(
+      'SELECT player_id, is_active FROM session_players WHERE session_id = ?',
+      sessionId
+    );
+    const active = new Map(flags.map((f) => [f.player_id, f.is_active === 1]));
+
+    // Snapshot the previous round's cumulative totals (the base for recompute).
+    const prev = await db.getAllAsync<{ player_id: number; cumulative_total: number }>(
+      `
+      SELECT s.player_id, s.cumulative_total
+      FROM scores s JOIN rounds r ON s.round_id = r.id
+      WHERE r.session_id = ? AND r.round_number = ?
+      `,
+      sessionId,
+      roundNumber - 1
+    );
+    const prevByPlayer = new Map(prev.map((p) => [p.player_id, p.cumulative_total]));
+
+    // Apply the new score_change values to the edited round.
+    for (const entry of entries) {
+      const change = active.get(entry.playerId) === false ? 0 : entry.scoreChange;
+      const base = prevByPlayer.get(entry.playerId) ?? 0;
+      await db.runAsync(
+        `UPDATE scores SET score_change = ?, cumulative_total = ?
+         WHERE round_id = ? AND player_id = ?`,
+        change,
+        base + change,
+        round.id,
+        entry.playerId
+      );
+    }
+
+    // Recompute cumulative totals for all subsequent rounds.
+    const laterRounds = await db.getAllAsync<{ id: number; round_number: number }>(
+      'SELECT id, round_number FROM rounds WHERE session_id = ? AND round_number > ? ORDER BY round_number ASC',
+      sessionId,
+      roundNumber
+    );
+
+    // Running totals start from the edited round's totals.
+    let running = new Map<number, number>();
+    const editedRows = await db.getAllAsync<{ player_id: number; cumulative_total: number }>(
+      'SELECT player_id, cumulative_total FROM scores WHERE round_id = ?',
+      round.id
+    );
+    for (const r of editedRows) running.set(r.player_id, r.cumulative_total);
+
+    for (const lr of laterRounds) {
+      const rows = await db.getAllAsync<{ player_id: number; score_change: number }>(
+        'SELECT player_id, score_change FROM scores WHERE round_id = ?',
+        lr.id
+      );
+      for (const r of rows) {
+        const next = (running.get(r.player_id) ?? 0) + r.score_change;
+        await db.runAsync(
+          'UPDATE scores SET cumulative_total = ? WHERE round_id = ? AND player_id = ?',
+          next,
+          lr.id,
+          r.player_id
+        );
+        running.set(r.player_id, next);
+      }
+    }
+  });
+}
+
+export async function deleteRound(sessionId: number, roundNumber: number): Promise<void> {
+  const db = await getDb();
+  await db.withTransactionAsync(async () => {
+    const round = await db.getFirstAsync<{ id: number }>(
+      'SELECT id FROM rounds WHERE session_id = ? AND round_number = ?',
+      sessionId,
+      roundNumber
+    );
+    if (!round) return;
+
+    await db.runAsync('DELETE FROM rounds WHERE id = ?', round.id);
+
+    // Renumber subsequent rounds down by one.
+    const later = await db.getAllAsync<{ id: number; round_number: number }>(
+      'SELECT id, round_number FROM rounds WHERE session_id = ? AND round_number > ? ORDER BY round_number ASC',
+      sessionId,
+      roundNumber
+    );
+    for (const r of later) {
+      await db.runAsync(
+        'UPDATE rounds SET round_number = ? WHERE id = ?',
+        r.round_number - 1,
+        r.id
+      );
+    }
+
+    // Recompute cumulative totals for all rounds from the (now deleted) one onward.
+    const editedRows = await db.getAllAsync<{ player_id: number; cumulative_total: number }>(
+      `
+      SELECT s.player_id, s.cumulative_total
+      FROM scores s JOIN rounds r ON s.round_id = r.id
+      WHERE r.session_id = ? AND r.round_number = ?
+      `,
+      sessionId,
+      roundNumber - 1
+    );
+    let running = new Map<number, number>();
+    for (const r of editedRows) running.set(r.player_id, r.cumulative_total);
+
+    const laterRounds = await db.getAllAsync<{ id: number; round_number: number }>(
+      'SELECT id, round_number FROM rounds WHERE session_id = ? AND round_number >= ? ORDER BY round_number ASC',
+      sessionId,
+      roundNumber
+    );
+    for (const lr of laterRounds) {
+      const rows = await db.getAllAsync<{ player_id: number; score_change: number }>(
+        'SELECT player_id, score_change FROM scores WHERE round_id = ?',
+        lr.id
+      );
+      for (const r of rows) {
+        const next = (running.get(r.player_id) ?? 0) + r.score_change;
+        await db.runAsync(
+          'UPDATE scores SET cumulative_total = ? WHERE round_id = ? AND player_id = ?',
+          next,
+          lr.id,
+          r.player_id
+        );
+        running.set(r.player_id, next);
+      }
+    }
+  });
+}

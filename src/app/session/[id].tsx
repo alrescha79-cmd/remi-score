@@ -1,6 +1,6 @@
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
@@ -25,12 +25,14 @@ export default function SessionScreen() {
   const primary = useThemeColor('primary');
   const bad = useThemeColor('bad');
   const primaryInk = useThemeColor('primaryInk');
-  const { players, ranking, scores, totals, loading, error, load, finish } = useSessionStore();
+  const { players, ranking, scores, totals, active, loading, error, load, finish } = useSessionStore();
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
-  useEffect(() => {
-    load(sessionId);
-  }, [sessionId, load]);
+  useFocusEffect(
+    useCallback(() => {
+      load(sessionId);
+    }, [load, sessionId])
+  );
 
   const lastRound = useMemo(() => {
     let max = 0;
@@ -83,6 +85,7 @@ export default function SessionScreen() {
                   total={totals[item.id] ?? 0}
                   delta={lastRound.roundNumber > 0 ? lastRound.delta.get(item.id) ?? 0 : null}
                   roundNumber={lastRound.roundNumber}
+                  afk={active[item.id] === false}
                   onPress={() =>
                     router.push({
                       pathname: '/session/[id]/player/[playerId]',
@@ -92,6 +95,47 @@ export default function SessionScreen() {
                 />
               </View>
             ))
+          )}
+
+          {lastRound.roundNumber > 0 && (
+            <View className="mt-5">
+              <Text className="mb-2 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
+                {t('round.history')}
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ paddingRight: 8 }}>
+                {Array.from({ length: lastRound.roundNumber }, (_, i) => {
+                  const n = i + 1;
+                  const isLast = n === lastRound.roundNumber;
+                  return (
+                    <TouchableOpacity
+                      key={n}
+                      onPress={() =>
+                        router.push({
+                          pathname: '/session/[id]/edit-round',
+                          params: { id: String(sessionId), round: String(n) },
+                        })
+                      }
+                      accessibilityRole="button"
+                      className="mr-2 h-10 w-10 items-center justify-center rounded-brutal border-2"
+                      style={{
+                        borderColor: isLast ? primary : border,
+                        backgroundColor: isLast ? primary : surfaceElevated,
+                      }}
+                    >
+                      <Text
+                        className="text-sm font-extrabold tabular-nums"
+                        style={{ color: isLast ? primaryInk : ink }}
+                      >
+                        {n}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+              <Text className="mt-1.5 px-1 text-[11px]" style={{ color: inkMuted }}>
+                {t('round.edit')} →
+              </Text>
+            </View>
           )}
 
           <TouchableOpacity

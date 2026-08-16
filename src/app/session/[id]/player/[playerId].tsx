@@ -1,5 +1,5 @@
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useMemo } from 'react';
 import { ActivityIndicator, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import ScreenHeader from '@/components/ScreenHeader';
@@ -32,9 +32,11 @@ export default function PlayerDetailScreen() {
   const good = useThemeColor('good');
   const bad = useThemeColor('bad');
 
-  useEffect(() => {
-    load(sessionId);
-  }, [sessionId, load]);
+  useFocusEffect(
+    useCallback(() => {
+      load(sessionId);
+    }, [load, sessionId])
+  );
 
   const player = players.find((p) => p.id === pid);
 

@@ -4,7 +4,7 @@ import Layout from './layout';
 
 interface Player { id: number; name: string }
 interface LeaderboardEntry { player: Player; total: number; sessionsPlayed: number; wins: number }
-interface SessionRow { id: number; label: string | null; status: string; created_at: string; completed_at: string | null; winnerName: string | null }
+interface SessionRow { id: number; seq: number; label: string | null; status: string; created_at: string; completed_at: string | null; winnerName: string | null }
 interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; roundCount: number }
 
 interface CirclePageProps {
@@ -148,7 +148,7 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, 
               class="flex items-center justify-between rounded-xl border-2 border-ink bg-surface p-3.5 shadow-brutal hover:-translate-x-0.5 hover:-translate-y-0.5 active:translate-x-0.5 active:translate-y-0.5 active:shadow-none transition-all"
             >
               <div>
-                <span class="font-bold text-ink text-sm block">{s.label ?? `Sesi #${s.id}`}</span>
+                <span class="font-bold text-ink text-sm block">Sesi #{s.seq} {s.label ? `· ${s.label}` : ''}</span>
                 <span class="text-xs text-muted font-mono">{s.created_at.slice(0, 10)}</span>
               </div>
               <div class="flex items-center gap-2">

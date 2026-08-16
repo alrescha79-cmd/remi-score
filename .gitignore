@@ -61,6 +61,8 @@ example
 # worker
 worker/node_modules/
 worker/.wrangler/
+worker/graphify-out/
+graphify-out/
 
 #etc
 .hallmark/
