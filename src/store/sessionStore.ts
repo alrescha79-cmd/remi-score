@@ -86,8 +86,8 @@ function fireCloudSync(circleId: number) {
         },
       });
       setLastCloudSyncAt(new Date().toISOString());
-    } catch (err) {
-      console.error('[SessionStore] fireCloudSync failed:', err);
+    } catch {
+      // Fire-and-forget sync; errors silently ignored
     }
   })();
 }
@@ -112,8 +112,34 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       const players = await listPlayers(session.circle_id);
       const scores = await listRoundScores(sessionId);
       const flags = await listSessionPlayers(sessionId);
+
+      // Determine latest round score state as backup for AFK persistence
+      let maxRound = 0;
+      for (const s of scores) {
+        if (s.round_number > maxRound) maxRound = s.round_number;
+      }
+      const latestScoreByPlayer = new Map<number, number | null>();
+      if (maxRound > 0) {
+        for (const s of scores) {
+          if (s.round_number === maxRound) {
+            latestScoreByPlayer.set(s.player_id, s.score_change);
+          }
+        }
+      }
+
       const active: Record<number, boolean> = {};
-      for (const p of players) active[p.id] = flags.find((f) => f.player_id === p.id)?.is_active !== 0;
+      for (const p of players) {
+        const flag = flags.find((f) => f.player_id === p.id);
+        if (flag !== undefined) {
+          active[p.id] = flag.is_active === 1;
+        } else if (maxRound > 0) {
+          // If no explicit flag, players with null in latest round are AFK.
+          const lastChange = latestScoreByPlayer.get(p.id);
+          active[p.id] = lastChange !== undefined && lastChange !== null;
+        } else {
+          active[p.id] = true;
+        }
+      }
       set({
         circleId: session.circle_id,
         label: session.label,

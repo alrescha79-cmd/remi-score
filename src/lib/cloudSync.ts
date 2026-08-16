@@ -23,8 +23,6 @@ async function fetchJsonOnce(url: string, init?: RequestInit): Promise<{ status:
       try {
         body = JSON.parse(text);
       } catch {
-        const head = text.slice(0, 200);
-        console.error('[CloudSync] Non-JSON response status', res.status, 'body:', head);
         throw new Error('cloud.badResponse');
       }
     }
@@ -52,20 +50,17 @@ async function fetchJson(url: string, init?: RequestInit): Promise<{ status: num
     }
     // Timeout on a dual-stack (IPv4+IPv6) name usually means the device sat on
     // dead IPv6; retry so IPv4 gets picked. 10s abort + retry = ~20s worst case.
-    console.log(`[CloudSync] Retrying (${msg}):`, url);
     return await fetchJsonOnce(url, init);
   }
 }
 
 export async function pushCloudSync(url: string, payload: CloudSyncPayload): Promise<string> {
   const endpoint = url.replace(/\/$/, '') + '/api/sync';
-  console.log('[CloudSync] Pushing sync payload to:', endpoint);
   const { status, body } = await fetchJson(endpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
   });
-  console.log('[CloudSync] Push response status:', status, body);
   if (status === 409) throw new Error('cloud.stale');
   if (status === 404) throw new Error('cloud.codeNotFound');
   if (!body?.ok) throw new Error(body?.error ?? 'cloud.pushFailed');
@@ -74,9 +69,7 @@ export async function pushCloudSync(url: string, payload: CloudSyncPayload): Pro
 
 export async function pullCloudSync(url: string, code: string): Promise<CloudSnapshot> {
   const endpoint = `${url.replace(/\/$/, '')}/api/circle?code=${encodeURIComponent(code)}`;
-  console.log('[CloudSync] Pulling circle at:', endpoint);
   const { status, body } = await fetchJson(endpoint);
-  console.log('[CloudSync] Pull response status:', status);
   if (status === 404) throw new Error('cloud.codeNotFound');
   if (status === 400) throw new Error('cloud.invalidCode');
   if (!body?.ok) throw new Error(body?.error ?? 'cloud.badResponse');
@@ -85,19 +78,16 @@ export async function pullCloudSync(url: string, code: string): Promise<CloudSna
 
 export async function testCloudConnection(url: string): Promise<void> {
   const endpoint = url.replace(/\/$/, '') + '/health';
-  console.log('[CloudSync] Testing health at:', endpoint);
   const { status } = await fetchJson(endpoint);
   if (status !== 200) throw new Error('cloud.badResponse');
 }
 
 export async function deleteCloudCircle(url: string, circleId: number): Promise<void> {
   const endpoint = `${url.replace(/\/$/, '')}/api/circle/${circleId}`;
-  console.log('[CloudSync] Deleting cloud circle:', endpoint);
   try {
-    const { status } = await fetchJson(endpoint, { method: 'DELETE' });
-    console.log('[CloudSync] Delete response status:', status);
-  } catch (err) {
-    console.error('[CloudSync] deleteCloudCircle error:', err);
+    await fetchJson(endpoint, { method: 'DELETE' });
+  } catch {
+    // Ignore cloud deletion errors
   }
 }
 
@@ -130,12 +120,8 @@ export async function syncCircleToCloud(opts: SyncCircleOptions): Promise<void> 
       await syncCircleFromSnapshot(circleId, snapshot, lastSyncedAt);
       lastSyncedAt = snapshot.syncedAt;
       opts.setLastSyncedAt(lastSyncedAt);
-    } catch (e) {
-      // codeNotFound means this is a first-ever push (creator); nothing to pull.
-      const msg = e instanceof Error ? e.message : '';
-      if (msg !== 'cloud.codeNotFound') {
-        console.error('[CloudSync] pull+merge failed:', msg);
-      }
+    } catch {
+      // Ignore initial pull failures on fresh circles
     }
 
     const tables = await loadLocalTablesForPush(circleId);

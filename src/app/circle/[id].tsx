@@ -89,8 +89,8 @@ export default function CircleScreen() {
           await syncCircleFromSnapshot(circleId, snapshot, circleSyncMeta[circleId]?.lastSyncedAt ?? null);
           setCircleSyncMeta(circleId, { ...circleSyncMeta[circleId], lastSyncedAt: snapshot.syncedAt });
           refresh();
-        } catch (e) {
-          console.error('[CircleScreen] auto-pull failed:', e);
+        } catch {
+          // Ignore auto-pull polling errors
         }
       }, 15000);
       return () => clearInterval(timer);

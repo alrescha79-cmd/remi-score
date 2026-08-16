@@ -84,7 +84,6 @@ export default function HomeScreen() {
       refresh();
     } catch (e) {
       const msg = e instanceof Error ? e.message : 'cloud.pullFailed';
-      console.error('[HomeScreen] join failed:', msg);
       setJoinError(msg.startsWith('cloud.') ? t(msg) : msg);
     } finally {
       setJoinBusy(false);

@@ -32,6 +32,7 @@ export default function EditRoundScreen() {
   const badInk = useThemeColor('badInk');
   const primaryInk = useThemeColor('primaryInk');
   const [overrides, setOverrides] = useState<Record<number, number>>({});
+  const [activeOverrides, setActiveOverrides] = useState<Record<number, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
@@ -39,6 +40,7 @@ export default function EditRoundScreen() {
     useCallback(() => {
       load(sessionId);
       setOverrides({});
+      setActiveOverrides({});
     }, [load, sessionId])
   );
 
@@ -51,26 +53,38 @@ export default function EditRoundScreen() {
     return m;
   }, [scores, roundNumber]);
 
+  const isPlayerActive = (playerId: number) => {
+    if (activeOverrides[playerId] !== undefined) return activeOverrides[playerId];
+    const existingChange = existing.get(playerId);
+    if (existingChange !== undefined) return existingChange !== null;
+    return active[playerId] !== false;
+  };
+
+  const handleToggleActive = (playerId: number, isPlay: boolean) => {
+    setActiveOverrides((prev) => ({ ...prev, [playerId]: isPlay }));
+    setActive(playerId, isPlay);
+  };
+
   const entries: Record<number, number | null> = {};
   for (const p of players) {
-    const isAfk = active[p.id] === false;
+    const isAfk = !isPlayerActive(p.id);
     entries[p.id] = isAfk ? null : overrides[p.id] ?? existing.get(p.id) ?? 0;
   }
 
   const setEntry = (playerId: number, value: number) =>
     setOverrides((prev) => ({ ...prev, [playerId]: value }));
 
-  const invalid = players.some((p) => active[p.id] !== false && !validateScore(entries[p.id]));
+  const invalid = players.some((p) => isPlayerActive(p.id) && !validateScore(entries[p.id]));
 
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
-      const aActive = active[a.id] !== false;
-      const bActive = active[b.id] !== false;
+      const aActive = isPlayerActive(a.id);
+      const bActive = isPlayerActive(b.id);
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
       return 0;
     });
-  }, [players, active]);
+  }, [players, active, activeOverrides, existing]);
 
   const save = async () => {
     if (invalid) return;
@@ -142,7 +156,7 @@ export default function EditRoundScreen() {
 
       <ScrollView className="flex-1 px-4" contentContainerStyle={{ paddingBottom: 20 }}>
         {sortedPlayers.map((p) => {
-          const isActive = active[p.id] !== false;
+          const isActive = isPlayerActive(p.id);
           const delta = entries[p.id];
 
           return (
@@ -166,7 +180,7 @@ export default function EditRoundScreen() {
 
                 <View className="ml-2 flex-row rounded-brutal border-2 p-0.5" style={{ borderColor: border }}>
                   <TouchableOpacity
-                    onPress={() => setActive(p.id, true)}
+                    onPress={() => handleToggleActive(p.id, true)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: isActive }}
                     className="rounded-brutal px-2.5 py-1"
@@ -177,7 +191,7 @@ export default function EditRoundScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => setActive(p.id, false)}
+                    onPress={() => handleToggleActive(p.id, false)}
                     accessibilityRole="button"
                     accessibilityState={{ selected: !isActive }}
                     className="rounded-brutal px-2.5 py-1"

@@ -139,6 +139,15 @@ export async function addRound(sessionId: number, entries: RoundEntry[]): Promis
         change,
         base + (change ?? 0)
       );
+
+      // Persist the active/AFK state so future rounds automatically maintain it.
+      await db.runAsync(
+        `INSERT INTO session_players (session_id, player_id, is_active) VALUES (?, ?, ?)
+         ON CONFLICT (session_id, player_id) DO UPDATE SET is_active = excluded.is_active`,
+        sessionId,
+        entry.playerId,
+        isAfk ? 0 : 1
+      );
     }
   });
 }
@@ -213,6 +222,24 @@ export async function updateRound(
         round.id,
         entry.playerId
       );
+    }
+
+    // If editing the latest round, also sync session_players active status.
+    const maxRow = await db.getFirstAsync<{ maxN: number }>(
+      'SELECT MAX(round_number) AS maxN FROM rounds WHERE session_id = ?',
+      sessionId
+    );
+    if (maxRow?.maxN === roundNumber) {
+      for (const entry of entries) {
+        const isAfk = active.get(entry.playerId) === false || entry.scoreChange === null;
+        await db.runAsync(
+          `INSERT INTO session_players (session_id, player_id, is_active) VALUES (?, ?, ?)
+           ON CONFLICT (session_id, player_id) DO UPDATE SET is_active = excluded.is_active`,
+          sessionId,
+          entry.playerId,
+          isAfk ? 0 : 1
+        );
+      }
     }
 
     // Recompute cumulative totals for all subsequent rounds.

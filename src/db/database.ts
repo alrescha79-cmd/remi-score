@@ -81,6 +81,37 @@ const MIGRATIONS: string[] = [
   ALTER TABLE scores_new RENAME TO scores;
   CREATE INDEX idx_scores_player ON scores(player_id);
   CREATE INDEX idx_scores_round ON scores(round_id);
+
+  UPDATE scores SET score_change = NULL
+  WHERE id IN (
+    SELECT sc.id FROM scores sc
+    JOIN rounds r ON sc.round_id = r.id
+    JOIN players p ON sc.player_id = p.id
+    JOIN sessions s ON r.session_id = s.id
+    WHERE p.name = 'Perdi' AND sc.score_change = 0 AND (
+      s.id = 3
+      OR (s.id = 4 AND r.round_number = 37)
+      OR (s.id = 9 AND r.round_number >= 16)
+    )
+  );
+
+  UPDATE scores SET score_change = NULL
+  WHERE id IN (
+    SELECT sc.id FROM scores sc
+    JOIN rounds r ON sc.round_id = r.id
+    JOIN players p ON sc.player_id = p.id
+    JOIN sessions s ON r.session_id = s.id
+    WHERE p.name = 'Bambang' AND s.id = 9 AND sc.score_change = 0
+  );
+
+  UPDATE scores SET score_change = NULL
+  WHERE id IN (
+    SELECT sc.id FROM scores sc
+    JOIN rounds r ON sc.round_id = r.id
+    JOIN players p ON sc.player_id = p.id
+    JOIN sessions s ON r.session_id = s.id
+    WHERE p.name = 'Dani' AND s.id = 9 AND r.round_number = 25 AND sc.score_change = 0
+  );
   `,
 ];
 
