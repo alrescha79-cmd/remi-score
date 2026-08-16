@@ -70,6 +70,7 @@ export interface SessionSummary {
 export interface SeasonPlayerStat {
   player: Player;
   total: number;
+  minus: number;
   sessionsPlayed: number;
   wins: number;
 }

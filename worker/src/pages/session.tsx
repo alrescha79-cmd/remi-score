@@ -8,6 +8,7 @@ interface RoundScore { roundNumber: number; scores: { player: Player; change: nu
 interface SessionPageProps {
   code: string;
   circleName: string;
+  sessionSeq: number;
   sessionLabel: string;
   status: string;
   rounds: RoundScore[];
@@ -21,7 +22,7 @@ function medal(rank: number): string {
   return `#${rank}`;
 }
 
-const SessionPage: FC<SessionPageProps> = ({ code, circleName, sessionLabel, status, rounds, players }) => (
+const SessionPage: FC<SessionPageProps> = ({ code, circleName, sessionSeq, sessionLabel, status, rounds, players }) => (
   <Layout title={`${sessionLabel} — ${circleName}`}>
     <div class="mb-4">
       <a
@@ -36,7 +37,7 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, sessionLabel, sta
     <div class="rounded-xl border-2 border-ink bg-surface p-5 shadow-brutal mb-6 flex items-center justify-between">
       <div>
         <span class="inline-block rounded-full bg-secondary/10 border border-ink/30 px-2.5 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-secondary mb-1">
-          Detail Pertandingan
+          Sesi #{sessionSeq}
         </span>
         <h1 class="text-2xl font-extrabold font-display text-ink">{sessionLabel}</h1>
       </div>

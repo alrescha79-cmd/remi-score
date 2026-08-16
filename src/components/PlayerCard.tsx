@@ -12,10 +12,11 @@ interface Props {
   total: number;
   delta?: number | null;
   roundNumber?: number;
+  afk?: boolean;
   onPress?: () => void;
 }
 
-export default function PlayerCard({ rank, name, total, delta, roundNumber, onPress }: Props) {
+export default function PlayerCard({ rank, name, total, delta, roundNumber, afk, onPress }: Props) {
   const t = useT();
   const isMedal = rank >= 1 && rank <= 3;
 
@@ -48,9 +49,16 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, onPr
       </View>
 
       <View className="min-w-0 flex-1">
-        <Text className="text-base font-bold" style={{ color: ink }} numberOfLines={1}>
-          {name}
-        </Text>
+        <View className="flex-row items-center gap-1.5">
+          <Text className="text-base font-bold" style={{ color: afk ? inkMuted : ink }} numberOfLines={1}>
+            {name}
+          </Text>
+          {afk && (
+            <View className="rounded border px-1.5 py-0.5" style={{ borderColor: bad }}>
+              <Text className="text-[9px] font-extrabold uppercase" style={{ color: bad }}>{t('round.absentShort')}</Text>
+            </View>
+          )}
+        </View>
         {delta != null && roundNumber != null && (
           <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>
             {t('session.roundLabel', { n: roundNumber })}: {formatSignedScore(delta)}
