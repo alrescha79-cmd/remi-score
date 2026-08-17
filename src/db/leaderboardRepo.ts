@@ -6,12 +6,22 @@ import type { Player, SeasonPlayerStat, SessionSummary } from './models';
 
 export async function getSeasonStats(circleId: number): Promise<SeasonPlayerStat[]> {
   const db = await getDb();
-  const rows = await db.getAllAsync<Player & { total: number; minus: number; sessions: number }>(
+  const rows = await db.getAllAsync<Player & {
+    total: number;
+    minus: number;
+    sessions: number;
+    rounds_played: number;
+    best: number;
+    worst: number;
+  }>(
     `
     SELECT p.*,
       COALESCE(SUM(s.score_change), 0) AS total,
       COALESCE(SUM(CASE WHEN s.score_change < 0 THEN s.score_change ELSE 0 END), 0) AS minus,
-      COUNT(DISTINCT CASE WHEN s.score_change IS NOT NULL THEN r.session_id END) AS sessions
+      COUNT(DISTINCT CASE WHEN s.score_change IS NOT NULL THEN r.session_id END) AS sessions,
+      COUNT(CASE WHEN s.score_change IS NOT NULL THEN 1 END) AS rounds_played,
+      COALESCE(MAX(s.score_change), 0) AS best,
+      COALESCE(MIN(s.score_change), 0) AS worst
     FROM players p
     LEFT JOIN scores s ON s.player_id = p.id
     LEFT JOIN rounds r ON s.round_id = r.id
@@ -27,6 +37,9 @@ export async function getSeasonStats(circleId: number): Promise<SeasonPlayerStat
     total: r.total,
     minus: r.minus,
     sessionsPlayed: r.sessions,
+    roundsPlayed: r.rounds_played,
+    best: r.best,
+    worst: r.worst,
     wins: wins.get(r.id) ?? 0,
   }));
 }
