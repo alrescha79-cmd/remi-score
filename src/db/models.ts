@@ -72,5 +72,8 @@ export interface SeasonPlayerStat {
   total: number;
   minus: number;
   sessionsPlayed: number;
+  roundsPlayed: number;
+  best: number;
+  worst: number;
   wins: number;
 }
