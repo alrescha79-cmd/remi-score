@@ -18,6 +18,7 @@ import { formatDateTime } from '@/lib/format';
 import { formatCount, useT } from '@/lib/i18n';
 import { rankByScore, type TieBreaker } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
+import { fireCloudSync } from '@/store/sessionStore';
 import { useSettingsStore } from '@/store/settingsStore';
 
 const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
@@ -102,6 +103,7 @@ export default function CircleScreen() {
     await addPlayer(circleId, newPlayer);
     setNewPlayer('');
     refresh();
+    fireCloudSync(circleId);
   };
 
   const openPlayerModal = (player: Player) => {
@@ -114,6 +116,7 @@ export default function CircleScreen() {
     await renamePlayer(editingPlayer.id, nameDraft);
     setEditingPlayer(null);
     refresh();
+    fireCloudSync(circleId);
   };
 
   const confirmDeletePlayer = (player: Player) => {
@@ -127,6 +130,7 @@ export default function CircleScreen() {
       onConfirm: async () => {
         await deletePlayer(player.id);
         refresh();
+        fireCloudSync(circleId, true);
       },
     });
   };
@@ -148,6 +152,7 @@ export default function CircleScreen() {
       onConfirm: async () => {
         await deleteSession(sessionId);
         refresh();
+        fireCloudSync(circleId, true);
       },
     });
   };
