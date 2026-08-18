@@ -98,6 +98,19 @@ app.get('/api/circle', async (c) => {
   return c.json({ ok: true, ...snapshot });
 });
 
+app.get('/api/circle/version', async (c) => {
+  const code = c.req.query('code') ?? '';
+  if (!CODE_RE.test(code)) {
+    return c.json({ ok: false, error: 'cloud.invalidCode' }, 400);
+  }
+  const db = c.env.DB;
+  const share = await db.prepare('SELECT updated_at FROM share_codes WHERE code = ?').bind(code).first();
+  if (!share) {
+    return c.json({ ok: false, error: 'cloud.codeNotFound' }, 404);
+  }
+  return c.json({ ok: true, syncedAt: share.updated_at });
+});
+
 app.post('/api/sync', async (c) => {
   let payload: SyncPayload;
   try {
@@ -303,6 +316,7 @@ app.get('/c/:code', async (c) => {
     <CirclePage
       code={code}
       circleName={circleName}
+      syncedAt={shareRow.updated_at as string}
       leaderboard={leaderboard}
       live={live}
       liveSessionId={liveSessionId}
@@ -371,6 +385,7 @@ app.get('/c/:code/session/:sessionId', async (c) => {
     <SessionPage
       code={code}
       circleName={circleName}
+      syncedAt={shareRow.updated_at as string}
       sessionSeq={sessionSeq}
       sessionLabel={(session.label as string) ?? `Sesi #${sessionSeq}`}
       status={session.status as string}

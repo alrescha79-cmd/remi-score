@@ -25,23 +25,22 @@ export async function exportCircleData(circleId: number): Promise<{
   session_players: BackupSessionPlayer[];
 }> {
   const db = await getDb();
-  const [players, sessions] = await Promise.all([
-    db.getAllAsync<Player>('SELECT * FROM players WHERE circle_id = ?', circleId),
-    db.getAllAsync<Session>('SELECT * FROM sessions WHERE circle_id = ?', circleId),
+  const [players, sessions, rounds, scores, session_players] = await Promise.all([
+    db.getAllAsync<Player>('SELECT * FROM players WHERE circle_id = ? ORDER BY id', circleId),
+    db.getAllAsync<Session>('SELECT * FROM sessions WHERE circle_id = ? ORDER BY id', circleId),
+    db.getAllAsync<Round>(
+      'SELECT r.* FROM rounds r JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ? ORDER BY r.id',
+      circleId
+    ),
+    db.getAllAsync<Score>(
+      'SELECT sc.* FROM scores sc JOIN rounds r ON sc.round_id = r.id JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ? ORDER BY sc.id',
+      circleId
+    ),
+    db.getAllAsync<BackupSessionPlayer>(
+      'SELECT sp.* FROM session_players sp JOIN sessions s ON sp.session_id = s.id WHERE s.circle_id = ? ORDER BY sp.session_id',
+      circleId
+    ),
   ]);
-  const sessionIds = sessions.map((s) => s.id);
-  if (sessionIds.length === 0) {
-    return { players, sessions, rounds: [], scores: [], session_players: [] };
-  }
-  const placeholders = sessionIds.map(() => '?').join(',');
-  const [rounds, session_players] = await Promise.all([
-    db.getAllAsync<Round>(`SELECT * FROM rounds WHERE session_id IN (${placeholders})`, ...sessionIds),
-    db.getAllAsync<BackupSessionPlayer>(`SELECT * FROM session_players WHERE session_id IN (${placeholders})`, ...sessionIds),
-  ]);
-  const roundIds = rounds.map((r) => r.id);
-  const scores = roundIds.length > 0
-    ? await db.getAllAsync<Score>(`SELECT * FROM scores WHERE round_id IN (${roundIds.map(() => '?').join(',')})`, ...roundIds)
-    : [];
   return { players, sessions, rounds, scores, session_players };
 }
 

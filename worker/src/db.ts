@@ -180,26 +180,13 @@ export async function getCircleByCode(db: D1Database, code: string): Promise<Cir
   if (!share) return null;
 
   const circleId = share.circle_id as number;
-  const [players, sessions] = await Promise.all([
+  const [players, sessions, rounds, scores, sessionPlayers] = await Promise.all([
     db.prepare('SELECT * FROM players WHERE circle_id = ? ORDER BY id').bind(circleId).all(),
     db.prepare('SELECT * FROM sessions WHERE circle_id = ? ORDER BY id').bind(circleId).all(),
+    db.prepare('SELECT r.* FROM rounds r JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ? ORDER BY r.id').bind(circleId).all(),
+    db.prepare('SELECT sc.* FROM scores sc JOIN rounds r ON sc.round_id = r.id JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ? ORDER BY sc.id').bind(circleId).all(),
+    db.prepare('SELECT sp.* FROM session_players sp JOIN sessions s ON sp.session_id = s.id WHERE s.circle_id = ? ORDER BY sp.session_id').bind(circleId).all(),
   ]);
-  const sessionIds = (sessions.results ?? []).map((s) => s.id as number);
-
-  let rounds: { results: unknown[] } = { results: [] };
-  let scores: { results: unknown[] } = { results: [] };
-  let sessionPlayers: { results: unknown[] } = { results: [] };
-
-  if (sessionIds.length > 0) {
-    const placeholders = sessionIds.map(() => '?').join(',');
-    const roundRes = await db.prepare(`SELECT * FROM rounds WHERE session_id IN (${placeholders}) ORDER BY id`).bind(...sessionIds).all();
-    rounds = roundRes;
-    const roundIds = (roundRes.results ?? []).map((r) => r.id as number);
-    if (roundIds.length > 0) {
-      scores = await db.prepare(`SELECT * FROM scores WHERE round_id IN (${roundIds.map(() => '?').join(',')}) ORDER BY id`).bind(...roundIds).all();
-    }
-    sessionPlayers = await db.prepare(`SELECT * FROM session_players WHERE session_id IN (${placeholders}) ORDER BY session_id`).bind(...sessionIds).all();
-  }
 
   return {
     shareCode: code,
@@ -218,9 +205,6 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload, updated
   const { shareCode, circleId, circleName, tables } = payload;
   const now = new Date().toISOString();
 
-  const sessionIds = tables.sessions.map((s) => s.id);
-  const roundIds = tables.rounds.map((r) => r.id);
-
   const stmts: D1PreparedStatement[] = [];
 
   stmts.push(
@@ -233,16 +217,18 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload, updated
       .bind(circleId, circleName, now)
   );
 
-  if (roundIds.length > 0) {
-    stmts.push(db.prepare(`DELETE FROM scores WHERE round_id IN (${roundIds.map(() => '?').join(',')})`)
-      .bind(...roundIds));
-  }
-  if (sessionIds.length > 0) {
-    stmts.push(db.prepare(`DELETE FROM rounds WHERE session_id IN (${sessionIds.map(() => '?').join(',')})`)
-      .bind(...sessionIds));
-    stmts.push(db.prepare(`DELETE FROM session_players WHERE session_id IN (${sessionIds.map(() => '?').join(',')})`)
-      .bind(...sessionIds));
-  }
+  stmts.push(
+    db.prepare('DELETE FROM scores WHERE round_id IN (SELECT r.id FROM rounds r JOIN sessions s ON r.session_id = s.id WHERE s.circle_id = ?)')
+      .bind(circleId)
+  );
+  stmts.push(
+    db.prepare('DELETE FROM rounds WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)')
+      .bind(circleId)
+  );
+  stmts.push(
+    db.prepare('DELETE FROM session_players WHERE session_id IN (SELECT id FROM sessions WHERE circle_id = ?)')
+      .bind(circleId)
+  );
   stmts.push(db.prepare('DELETE FROM sessions WHERE circle_id = ?').bind(circleId));
   stmts.push(db.prepare('DELETE FROM players WHERE circle_id = ?').bind(circleId));
 
