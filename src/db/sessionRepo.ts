@@ -209,16 +209,29 @@ export async function updateRound(
     );
     const prevByPlayer = new Map(prev.map((p) => [p.player_id, p.cumulative_total]));
 
+    // Current score rows before editing to compare differences.
+    const currentScores = await db.getAllAsync<{ player_id: number; score_change: number | null; is_edited: number }>(
+      'SELECT player_id, score_change, is_edited FROM scores WHERE round_id = ?',
+      round.id
+    );
+    const curScoresMap = new Map(currentScores.map((c) => [c.player_id, c]));
+
     // Apply the new score_change values to the edited round.
     for (const entry of entries) {
       const isAfk = active.get(entry.playerId) === false || entry.scoreChange === null;
       const change = isAfk ? null : entry.scoreChange;
       const base = prevByPlayer.get(entry.playerId) ?? 0;
+      const cur = curScoresMap.get(entry.playerId);
+      // Mark edited ONLY if score_change actually changed, or preserve if already edited.
+      const changed = cur ? cur.score_change !== change : true;
+      const isEdited = (cur?.is_edited === 1 || changed) ? 1 : 0;
+
       await db.runAsync(
-        `UPDATE scores SET score_change = ?, cumulative_total = ?, is_edited = 1
+        `UPDATE scores SET score_change = ?, cumulative_total = ?, is_edited = ?
          WHERE round_id = ? AND player_id = ?`,
         change,
         base + (change ?? 0),
+        isEdited,
         round.id,
         entry.playerId
       );

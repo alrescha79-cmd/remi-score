@@ -81,12 +81,16 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboa
                     AFK
                   </span>
                 ) : entry.lastDelta !== 0 && (
-                  <span class={`ml-2 text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
-                    {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
-                  </span>
-                )}
-                {entry.isEdited && entry.lastDelta !== null && (
-                  <span class="ml-1 text-[10px]" title="Diedit">✏️</span>
+                  <div class="inline-flex flex-col items-end ml-2">
+                    {entry.isEdited && (
+                      <span class="text-[8px] font-extrabold uppercase text-primary -mb-1">
+                        edit
+                      </span>
+                    )}
+                    <span class={`text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
+                      {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

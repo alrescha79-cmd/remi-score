@@ -196,16 +196,18 @@ export default function PlayerDetailScreen() {
                 </Text>
                 <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>{formatTime(r.timestamp)}</Text>
               </View>
-              <View className="w-16 flex-row items-center justify-end gap-1">
+              <View className="w-16 flex-col items-end justify-center">
+                {r.is_edited === 1 && r.score_change !== null && (
+                  <Text className="text-[8px] font-extrabold uppercase text-primary -mb-0.5">
+                    edit
+                  </Text>
+                )}
                 <Text
                   className="text-right text-base font-extrabold tabular-nums"
                   style={{ color: scoreColor(r.score_change, good, bad, inkMuted) }}
                 >
                   {r.score_change === null ? t('round.absentShort') : formatSignedScore(r.score_change)}
                 </Text>
-                {r.is_edited === 1 && r.score_change !== null && (
-                  <Text className="text-[10px]" title="Diedit">✏️</Text>
-                )}
               </View>
               <Text className="w-16 text-right text-sm font-bold tabular-nums" style={{ color: ink }}>
                 {formatSignedScore(r.cumulative_total)}

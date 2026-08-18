@@ -67,9 +67,11 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
               {t('session.roundLabel', { n: roundNumber })}: {delta === null || afk ? t('round.absentShort') : formatSignedScore(delta)}
             </Text>
             {isEdited && !afk && (
-              <Text className="text-[10px] font-bold" style={{ color: primary }} title="Diedit">
-                ✏️
-              </Text>
+              <View className="rounded bg-primary/10 border border-primary/30 px-1 py-0.2">
+                <Text className="text-[9px] font-extrabold uppercase" style={{ color: primary }}>
+                  edit
+                </Text>
+              </View>
             )}
           </View>
         )}
