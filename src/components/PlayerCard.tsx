@@ -26,6 +26,7 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
   const border = useThemeColor('border');
   const surface = useThemeColor('surface');
   const surfaceElevated = useThemeColor('surfaceElevated');
+  const primary = useThemeColor('primary');
   const good = useThemeColor('good');
   const bad = useThemeColor('bad');
 
