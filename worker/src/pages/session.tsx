@@ -83,15 +83,15 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, session
                             AFK
                           </span>
                         ) : (
-                          <div class="inline-flex flex-col items-center">
-                            {isEdited && (
-                              <span class="text-[7px] font-extrabold uppercase text-primary -mb-1">
-                                edit
-                              </span>
-                            )}
+                          <div class="inline-flex items-center justify-center gap-1">
                             <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
                               {change > 0 ? `+${change}` : change}
                             </span>
+                            {isEdited && (
+                              <span class="text-[8px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.2 rounded">
+                                edit
+                              </span>
+                            )}
                           </div>
                         )}
                       </td>

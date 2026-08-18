@@ -81,9 +81,9 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboa
                     AFK
                   </span>
                 ) : entry.lastDelta !== 0 && (
-                  <div class="inline-flex flex-col items-end ml-2">
+                  <div class="inline-flex items-center gap-1 ml-2">
                     {entry.isEdited && (
-                      <span class="text-[8px] font-extrabold uppercase text-primary -mb-1">
+                      <span class="text-[9px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.5 rounded">
                         edit
                       </span>
                     )}

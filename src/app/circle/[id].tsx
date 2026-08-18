@@ -303,16 +303,14 @@ export default function CircleScreen() {
             const winners = sorted.filter((r) => r.rank === 1);
             const active = session.status === 'active';
             return (
-              <View
+              <TouchableOpacity
                 key={session.id}
-                className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-4"
+                onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
+                accessibilityRole="button"
+                className="mb-2 flex-row items-center rounded-brutal-lg border-2 px-4 py-4 active:opacity-80"
                 style={{ borderColor: border, backgroundColor: surface }}
               >
-                <TouchableOpacity
-                  onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
-                  accessibilityRole="button"
-                  className="min-w-0 flex-1"
-                >
+                <View className="min-w-0 flex-1">
                   <View className="flex-row items-center">
                     <Text className="text-sm font-bold" style={{ color: ink }}>
                       {formatDateTime(session.created_at)}
@@ -323,15 +321,18 @@ export default function CircleScreen() {
                       {t('circle.winner', { names: winners.map((w) => w.item.player.name).join(', ') })}
                     </Text>
                   )}
-                </TouchableOpacity>
-                <View className="ml-3 flex-1 flex-row items-center justify-end">
+                </View>
+                <View className="ml-3 flex-row items-center justify-end">
                   <View className="mr-2 h-1.5 w-1.5 rounded-full" style={{ backgroundColor: active ? primary : good }} />
                   <Text className="text-xs font-bold" style={{ color: active ? primary : good }}>
                     {active ? t('circle.active') : t('circle.finished')}
                   </Text>
                 </View>
                 <TouchableOpacity
-                  onPress={() => confirmDeleteSession(session.id)}
+                  onPress={(e) => {
+                    e.stopPropagation();
+                    confirmDeleteSession(session.id);
+                  }}
                   hitSlop={8}
                   accessibilityRole="button"
                   accessibilityLabel={t('circle.deleteSessionTitle')}
@@ -340,7 +341,7 @@ export default function CircleScreen() {
                 >
                   <Ionicons name="trash-outline" size={16} color={bad} />
                 </TouchableOpacity>
-              </View>
+              </TouchableOpacity>
             );
           })
         )}
