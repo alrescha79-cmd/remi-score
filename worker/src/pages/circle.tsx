@@ -10,6 +10,7 @@ interface LiveScore { player: Player; total: number; rank: number; rankChange: '
 interface CirclePageProps {
   code: string;
   circleName: string;
+  syncedAt?: string;
   leaderboard: LeaderboardEntry[];
   live: LiveScore[] | null;
   liveSessionId: number | null;
@@ -23,8 +24,8 @@ function medal(rank: number): string {
   return `#${rank}`;
 }
 
-const CirclePage: FC<CirclePageProps> = ({ code, circleName, leaderboard, live, liveSessionId, recentSessions }) => (
-  <Layout title={circleName} description={`Skor live dan klasemen untuk ${circleName}`}>
+const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboard, live, liveSessionId, recentSessions }) => (
+  <Layout title={circleName} description={`Skor live dan klasemen untuk ${circleName}`} liveCode={code} syncedAt={syncedAt}>
     {/* Navigation to Home */}
     <div class="mb-4">
       <a

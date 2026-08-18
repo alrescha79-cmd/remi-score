@@ -8,6 +8,7 @@ interface RoundScore { roundNumber: number; scores: { player: Player; change: nu
 interface SessionPageProps {
   code: string;
   circleName: string;
+  syncedAt?: string;
   sessionSeq: number;
   sessionLabel: string;
   status: string;
@@ -22,8 +23,8 @@ function medal(rank: number): string {
   return `#${rank}`;
 }
 
-const SessionPage: FC<SessionPageProps> = ({ code, circleName, sessionSeq, sessionLabel, status, rounds, players }) => (
-  <Layout title={`${sessionLabel} — ${circleName}`}>
+const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, sessionSeq, sessionLabel, status, rounds, players }) => (
+  <Layout title={`${sessionLabel} — ${circleName}`} liveCode={status === 'active' ? code : undefined} syncedAt={syncedAt}>
     <div class="mb-4">
       <a
         href={`/c/${code}`}

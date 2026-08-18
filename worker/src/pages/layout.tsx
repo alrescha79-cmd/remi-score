@@ -4,9 +4,11 @@ import type { FC, PropsWithChildren } from 'hono/jsx';
 interface LayoutProps {
   title: string;
   description?: string;
+  liveCode?: string;
+  syncedAt?: string;
 }
 
-const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, children }) => (
+const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, liveCode, syncedAt, children }) => (
   <html lang="id">
     <head>
       <meta charset="UTF-8" />
@@ -54,6 +56,36 @@ const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, childr
       <div class="mx-auto max-w-lg px-4 py-6">
         {children}
       </div>
+      {liveCode && syncedAt && (
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            (function() {
+              var code = ${JSON.stringify(liveCode)};
+              var current = ${JSON.stringify(syncedAt)};
+              var timer = null;
+              function check() {
+                if (document.hidden) return;
+                fetch('/api/circle/version?code=' + encodeURIComponent(code))
+                  .then(function(r) { return r.json(); })
+                  .then(function(d) {
+                    if (d && d.ok && d.syncedAt && d.syncedAt !== current) {
+                      window.location.reload();
+                    }
+                  })
+                  .catch(function() {});
+              }
+              function start() {
+                if (timer) clearInterval(timer);
+                timer = setInterval(check, 3000);
+              }
+              document.addEventListener('visibilitychange', function() {
+                if (!document.hidden) { check(); start(); }
+              });
+              start();
+            })();
+          `
+        }} />
+      )}
     </body>
   </html>
 );
