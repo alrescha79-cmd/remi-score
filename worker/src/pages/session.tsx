@@ -3,7 +3,7 @@ import type { FC } from 'hono/jsx';
 import Layout from './layout';
 
 interface Player { id: number; name: string }
-interface RoundScore { roundNumber: number; scores: { player: Player; change: number | null; total: number }[] }
+interface RoundScore { roundNumber: number; scores: { player: Player; change: number | null; total: number; isEdited?: boolean }[] }
 
 interface SessionPageProps {
   code: string;
@@ -75,6 +75,7 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, session
                   {rounds.map((r) => {
                     const sc = r.scores.find((s) => s.player.id === p.id);
                     const change = sc ? sc.change : null;
+                    const isEdited = sc?.isEdited === true;
                     return (
                       <td class="px-3 py-3 text-center font-mono text-xs">
                         {change === null ? (
@@ -82,9 +83,16 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, session
                             AFK
                           </span>
                         ) : (
-                          <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
-                            {change > 0 ? `+${change}` : change}
-                          </span>
+                          <div class="inline-flex items-center justify-center gap-1">
+                            <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
+                              {change > 0 ? `+${change}` : change}
+                            </span>
+                            {isEdited && (
+                              <span class="text-[8px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.2 rounded">
+                                edit
+                              </span>
+                            )}
+                          </div>
                         )}
                       </td>
                     );

@@ -12,7 +12,7 @@ import {
   setSessionPlayerActive,
   updateRound as repoUpdateRound,
 } from '../db/sessionRepo';
-import { syncCircleToCloud } from '../lib/cloudSync';
+import { pushOnlyCloudSync, syncCircleToCloud } from '../lib/cloudSync';
 import { DEFAULT_CLOUD_WORKER_URL } from '../lib/cloudSyncCore';
 import { computeTotals, rankByScore, type Ranked, type TieBreaker } from '../lib/score';
 import { useSettingsStore } from './settingsStore';
@@ -21,6 +21,7 @@ interface SessionState {
   sessionId: number | null;
   circleId: number | null;
   label: string | null;
+  status: string;
   players: Player[];
   scores: ScoreRow[];
   totals: Record<number, number>;
@@ -63,7 +64,7 @@ function derive(players: Player[], scores: ScoreRow[]) {
   return { totals: totalsObj, ranking };
 }
 
-function fireCloudSync(circleId: number) {
+export function fireCloudSync(circleId: number, pushOnly = false) {
   const { cloudWorkerUrl, cloudSyncMode, shareCodes, circleSyncMeta, setLastCloudSyncAt } =
     useSettingsStore.getState();
   const workerUrl = cloudWorkerUrl.trim() || DEFAULT_CLOUD_WORKER_URL;
@@ -73,7 +74,8 @@ function fireCloudSync(circleId: number) {
   void (async () => {
     try {
       const circle = await getCircle(circleId);
-      await syncCircleToCloud({
+      const syncFn = pushOnly ? pushOnlyCloudSync : syncCircleToCloud;
+      await syncFn({
         url: workerUrl,
         circleId,
         shareCode,
@@ -96,6 +98,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionId: null,
   circleId: null,
   label: null,
+  status: 'active',
   players: [],
   scores: [],
   totals: {},
@@ -143,6 +146,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({
         circleId: session.circle_id,
         label: session.label,
+        status: session.status,
         players,
         scores,
         active,

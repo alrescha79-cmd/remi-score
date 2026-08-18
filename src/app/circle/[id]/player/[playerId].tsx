@@ -280,7 +280,6 @@ export default function SeasonPlayerScreen() {
           sessionRows.map(({ session, seq, label, total, rank }) => (
             <TouchableOpacity
               key={session.id}
-              disabled={session.status === 'active'}
               onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
               accessibilityRole="button"
               style={{ borderColor: border, backgroundColor: surface }}

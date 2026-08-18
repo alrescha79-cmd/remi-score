@@ -17,7 +17,7 @@ export default function EditRoundScreen() {
   const roundNumber = Number(round);
   const router = useRouter();
   const t = useT();
-  const { players, scores, totals, active, load, editRound, removeRound, setActive } = useSessionStore();
+  const { players, scores, totals, active, status, load, editRound, removeRound, setActive } = useSessionStore();
   const bg = useThemeColor('bg');
   const surface = useThemeColor('surface');
   const surfaceElevated = useThemeColor('surfaceElevated');
@@ -38,7 +38,12 @@ export default function EditRoundScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      load(sessionId);
+      load(sessionId).then(() => {
+        const curStatus = useSessionStore.getState().status;
+        if (curStatus === 'completed') {
+          router.replace({ pathname: '/session/[id]', params: { id: String(sessionId) } });
+        }
+      });
       setOverrides({});
       setActiveOverrides({});
     }, [load, sessionId])

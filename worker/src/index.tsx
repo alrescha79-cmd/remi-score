@@ -225,7 +225,7 @@ app.get('/c/:code', async (c) => {
   if (activeSession) {
     liveSessionId = activeSession.id as number;
     const liveRows = await db.prepare(`
-      SELECT p.id, p.name, s.cumulative_total, s.score_change, r.round_number
+      SELECT p.id, p.name, s.cumulative_total, s.score_change, s.is_edited, r.round_number
       FROM scores s
       JOIN rounds r ON s.round_id = r.id
       JOIN players p ON s.player_id = p.id
@@ -237,10 +237,10 @@ app.get('/c/:code', async (c) => {
     const maxRound = rows.length > 0 ? Math.max(...rows.map((r: any) => r.round_number)) : 0;
     const prevRound = maxRound > 1 ? maxRound - 1 : 0;
 
-    const latestScores = new Map<number, { total: number; delta: number; name: string }>();
+    const latestScores = new Map<number, { total: number; delta: number; isEdited: boolean; name: string }>();
     for (const r of rows as any[]) {
       if (r.round_number === maxRound && !latestScores.has(r.id)) {
-        latestScores.set(r.id, { total: r.cumulative_total, delta: r.score_change, name: r.name });
+        latestScores.set(r.id, { total: r.cumulative_total, delta: r.score_change, isEdited: r.is_edited === 1, name: r.name });
       }
     }
 
@@ -255,7 +255,7 @@ app.get('/c/:code', async (c) => {
     }
 
     const sorted = [...latestScores.entries()]
-      .map(([id, v]) => ({ player: { id, name: v.name }, total: v.total, lastDelta: v.delta, roundCount: maxRound }))
+      .map(([id, v]) => ({ player: { id, name: v.name }, total: v.total, lastDelta: v.delta, isEdited: v.isEdited, roundCount: maxRound }))
       .sort((a, b) => b.total - a.total);
 
     // Previous round ranking (sorted by prev total DESC)
@@ -349,7 +349,7 @@ app.get('/c/:code/session/:sessionId', async (c) => {
   const sessionSeq = (seqRow?.seq as number) ?? 0;
 
   const scoreRows = await db.prepare(`
-    SELECT s.player_id, s.score_change, s.cumulative_total, r.round_number, p.id, p.name
+    SELECT s.player_id, s.score_change, s.cumulative_total, s.is_edited, r.round_number, p.id, p.name
     FROM scores s
     JOIN rounds r ON s.round_id = r.id
     JOIN players p ON s.player_id = p.id
@@ -359,13 +359,13 @@ app.get('/c/:code/session/:sessionId', async (c) => {
 
   const playersMap = new Map<number, { id: number; name: string }>();
   const playerTotalsMap = new Map<number, number>();
-  const roundsMap = new Map<number, { player: { id: number; name: string }; change: number | null; total: number }[]>();
+  const roundsMap = new Map<number, { player: { id: number; name: string }; change: number | null; total: number; isEdited?: boolean }[]>();
 
   for (const row of (scoreRows.results ?? []) as any[]) {
     playersMap.set(row.player_id, { id: row.player_id, name: row.name });
     playerTotalsMap.set(row.player_id, row.cumulative_total);
     const arr = roundsMap.get(row.round_number) ?? [];
-    arr.push({ player: { id: row.player_id, name: row.name }, change: row.score_change, total: row.cumulative_total });
+    arr.push({ player: { id: row.player_id, name: row.name }, change: row.score_change, total: row.cumulative_total, isEdited: row.is_edited === 1 });
     roundsMap.set(row.round_number, arr);
   }
 

@@ -25,7 +25,7 @@ export default function SessionScreen() {
   const primary = useThemeColor('primary');
   const bad = useThemeColor('bad');
   const primaryInk = useThemeColor('primaryInk');
-  const { players, ranking, scores, totals, active, loading, error, load, finish } = useSessionStore();
+  const { players, ranking, scores, totals, active, status, loading, error, load, finish } = useSessionStore();
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   useFocusEffect(
@@ -38,8 +38,14 @@ export default function SessionScreen() {
     let max = 0;
     for (const s of scores) if (s.round_number > max) max = s.round_number;
     const delta = new Map<number, number | null>();
-    for (const s of scores) if (s.round_number === max) delta.set(s.player_id, s.score_change);
-    return { roundNumber: max, delta };
+    const edited = new Map<number, boolean>();
+    for (const s of scores) {
+      if (s.round_number === max) {
+        delta.set(s.player_id, s.score_change);
+        edited.set(s.player_id, s.is_edited === 1);
+      }
+    }
+    return { roundNumber: max, delta, edited };
   }, [scores]);
 
   const confirmEnd = () => {
@@ -86,6 +92,7 @@ export default function SessionScreen() {
                   delta={lastRound.roundNumber > 0 ? (lastRound.delta.get(item.id) ?? null) : null}
                   roundNumber={lastRound.roundNumber}
                   afk={active[item.id] === false}
+                  isEdited={lastRound.edited.get(item.id)}
                   onPress={() =>
                     router.push({
                       pathname: '/session/[id]/player/[playerId]',
@@ -97,7 +104,7 @@ export default function SessionScreen() {
             ))
           )}
 
-          {lastRound.roundNumber > 0 && (
+          {lastRound.roundNumber > 0 && status !== 'completed' && (
             <View className="mt-5">
               <Text className="mb-2 px-1 text-xs font-bold uppercase tracking-widest" style={{ color: inkMuted }}>
                 {t('round.history')}
@@ -138,26 +145,30 @@ export default function SessionScreen() {
             </View>
           )}
 
-          <TouchableOpacity
-            onPress={() => router.push({ pathname: '/session/[id]/add-round', params: { id: String(sessionId) } })}
-            accessibilityRole="button"
-            className="mt-5 flex-row items-center justify-center rounded-brutal border-2 py-4 shadow-brutal-1"
-            style={{ borderColor: border, backgroundColor: primary }}
-          >
-            <Ionicons name="add" size={20} color={primaryInk} />
-            <Text className="ml-2 text-base font-extrabold" style={{ color: primaryInk }}>{t('session.addRound')}</Text>
-          </TouchableOpacity>
+          {status !== 'completed' && (
+            <>
+              <TouchableOpacity
+                onPress={() => router.push({ pathname: '/session/[id]/add-round', params: { id: String(sessionId) } })}
+                accessibilityRole="button"
+                className="mt-5 flex-row items-center justify-center rounded-brutal border-2 py-4 shadow-brutal-1"
+                style={{ borderColor: border, backgroundColor: primary }}
+              >
+                <Ionicons name="add" size={20} color={primaryInk} />
+                <Text className="ml-2 text-base font-extrabold" style={{ color: primaryInk }}>{t('session.addRound')}</Text>
+              </TouchableOpacity>
 
-          <TouchableOpacity
-            onPress={confirmEnd}
-            disabled={lastRound.roundNumber === 0}
-            accessibilityRole="button"
-            className="mt-3 flex-row items-center justify-center rounded-brutal border-2 py-4"
-            style={{ borderColor: border, backgroundColor: surfaceElevated, opacity: lastRound.roundNumber === 0 ? 0.4 : 1 }}
-          >
-            <Ionicons name="flag" size={18} color={bad} />
-            <Text className="ml-2 text-base font-extrabold" style={{ color: bad }}>{t('session.end')}</Text>
-          </TouchableOpacity>
+              <TouchableOpacity
+                onPress={confirmEnd}
+                disabled={lastRound.roundNumber === 0}
+                accessibilityRole="button"
+                className="mt-3 flex-row items-center justify-center rounded-brutal border-2 py-4"
+                style={{ borderColor: border, backgroundColor: surfaceElevated, opacity: lastRound.roundNumber === 0 ? 0.4 : 1 }}
+              >
+                <Ionicons name="flag" size={18} color={bad} />
+                <Text className="ml-2 text-base font-extrabold" style={{ color: bad }}>{t('session.end')}</Text>
+              </TouchableOpacity>
+            </>
+          )}
         </ScrollView>
       )}
 

@@ -5,7 +5,7 @@ import Layout from './layout';
 interface Player { id: number; name: string }
 interface LeaderboardEntry { player: Player; total: number; sessionsPlayed: number; wins: number }
 interface SessionRow { id: number; seq: number; label: string | null; status: string; created_at: string; completed_at: string | null; winnerName: string | null }
-interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; roundCount: number }
+interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; isEdited?: boolean; roundCount: number }
 
 interface CirclePageProps {
   code: string;
@@ -74,16 +74,23 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboa
                 {entry.rankChange === 'down' && <span class="text-xs text-bad">▼</span>}
                 {entry.rankChange === 'same' && <span class="text-xs text-muted">═</span>}
               </div>
-              <div class="text-right">
+              <div class="text-right flex items-center justify-end">
                 <span class="text-lg font-extrabold font-display text-ink">{entry.total}</span>
                 {entry.lastDelta === null ? (
                   <span class="ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-ink/30 bg-bg text-muted">
                     AFK
                   </span>
                 ) : entry.lastDelta !== 0 && (
-                  <span class={`ml-2 text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
-                    {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
-                  </span>
+                  <div class="inline-flex items-center gap-1 ml-2">
+                    {entry.isEdited && (
+                      <span class="text-[9px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.5 rounded">
+                        edit
+                      </span>
+                    )}
+                    <span class={`text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
+                      {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
+                    </span>
+                  </div>
                 )}
               </div>
             </div>

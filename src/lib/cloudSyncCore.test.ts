@@ -243,12 +243,31 @@ describe('mergeSnapshots', () => {
       rounds: [round(10, 1, 2)],
       scores: [score(10, 10, 1, 80)],
     });
-    const { tables: out } = mergeSnapshots(input({ local, remote }));
+    const { tables: out } = mergeSnapshots(input({ local, remote, remoteChanged: true }));
     assert.equal(out.rounds.length, 1);
     assert.equal(out.rounds[0].id, 10);
     assert.equal(out.scores.length, 1);
     assert.equal(out.scores[0].round_id, 10);
     assert.equal(out.scores[0].score_change, 80);
+  });
+
+  it('local composite-keyed rows win when remote unchanged (local editRound)', () => {
+    const local = tables({
+      players: [player(1, 'Andi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(7, 1, 2)],
+      scores: [score(7, 7, 1, 120)],
+    });
+    const remote = tables({
+      players: [player(1, 'Andi')],
+      sessions: [session(1, 'S1')],
+      rounds: [round(7, 1, 2)],
+      scores: [score(7, 7, 1, 50)],
+    });
+    const { tables: out } = mergeSnapshots(input({ local, remote, remoteChanged: false }));
+    assert.equal(out.rounds.length, 1);
+    assert.equal(out.scores.length, 1);
+    assert.equal(out.scores[0].score_change, 120);
   });
 
   it('never writes session_players entries into the push map (no id column)', () => {

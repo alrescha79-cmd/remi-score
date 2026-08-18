@@ -35,6 +35,7 @@ export interface Score {
   player_id: number;
   score_change: number | null;
   cumulative_total: number;
+  is_edited?: number;
 }
 
 export interface CircleStats {

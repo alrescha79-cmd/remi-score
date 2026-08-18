@@ -104,6 +104,25 @@ interface SyncCircleOptions {
   maxAttempts?: number;
 }
 
+export async function pushOnlyCloudSync(opts: SyncCircleOptions): Promise<void> {
+  const { url, circleId, shareCode, circleName, remoteCircleId } = opts;
+  let lastSyncedAt = opts.getLastSyncedAt();
+
+  const tables = await loadLocalTablesForPush(circleId);
+  const pushMap = await getPushMap();
+  const remoteId = remoteCircleId ?? circleId;
+  const translated = translateForPush(tables, pushMap, remoteId);
+
+  const syncedAt = await pushCloudSync(url, {
+    shareCode,
+    circleId: remoteId,
+    circleName,
+    baseSyncedAt: lastSyncedAt,
+    tables: translated,
+  });
+  opts.setLastSyncedAt(syncedAt);
+}
+
 /**
  * Bidirectional sync for a circle: pull latest -> merge into local ->
  * translate ids -> push. On a stale push (409) it pulls again and retries,
