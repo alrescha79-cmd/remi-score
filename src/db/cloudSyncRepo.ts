@@ -16,7 +16,7 @@ const COLS: Record<SyncTableName, string[]> = {
   players: ['id', 'name', 'circle_id', 'created_at'],
   sessions: ['id', 'circle_id', 'label', 'status', 'created_at', 'completed_at'],
   rounds: ['id', 'session_id', 'round_number', 'timestamp'],
-  scores: ['id', 'round_id', 'player_id', 'score_change', 'cumulative_total'],
+  scores: ['id', 'round_id', 'player_id', 'score_change', 'cumulative_total', 'is_edited'],
   session_players: ['session_id', 'player_id', 'is_active'],
 };
 

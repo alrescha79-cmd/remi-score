@@ -215,7 +215,7 @@ export async function updateRound(
       const change = isAfk ? null : entry.scoreChange;
       const base = prevByPlayer.get(entry.playerId) ?? 0;
       await db.runAsync(
-        `UPDATE scores SET score_change = ?, cumulative_total = ?
+        `UPDATE scores SET score_change = ?, cumulative_total = ?, is_edited = 1
          WHERE round_id = ? AND player_id = ?`,
         change,
         base + (change ?? 0),

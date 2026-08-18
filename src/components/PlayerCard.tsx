@@ -13,10 +13,11 @@ interface Props {
   delta?: number | null;
   roundNumber?: number;
   afk?: boolean;
+  isEdited?: boolean;
   onPress?: () => void;
 }
 
-export default function PlayerCard({ rank, name, total, delta, roundNumber, afk, onPress }: Props) {
+export default function PlayerCard({ rank, name, total, delta, roundNumber, afk, isEdited, onPress }: Props) {
   const t = useT();
   const isMedal = rank >= 1 && rank <= 3;
 
@@ -60,9 +61,16 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
           )}
         </View>
         {roundNumber != null && roundNumber > 0 && (
-          <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>
-            {t('session.roundLabel', { n: roundNumber })}: {delta === null || afk ? t('round.absentShort') : formatSignedScore(delta)}
-          </Text>
+          <View className="mt-0.5 flex-row items-center gap-1">
+            <Text className="text-xs" style={{ color: inkMuted }}>
+              {t('session.roundLabel', { n: roundNumber })}: {delta === null || afk ? t('round.absentShort') : formatSignedScore(delta)}
+            </Text>
+            {isEdited && !afk && (
+              <Text className="text-[10px] font-bold" style={{ color: primary }} title="Diedit">
+                ✏️
+              </Text>
+            )}
+          </View>
         )}
       </View>
 

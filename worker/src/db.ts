@@ -40,7 +40,8 @@ const SCHEMA = `
     round_id INTEGER NOT NULL,
     player_id INTEGER NOT NULL,
     score_change INTEGER,
-    cumulative_total INTEGER NOT NULL
+    cumulative_total INTEGER NOT NULL,
+    is_edited INTEGER NOT NULL DEFAULT 0
   );
 
   CREATE TABLE IF NOT EXISTS session_players (
@@ -61,76 +62,65 @@ export async function ensureSchema(db: D1Database): Promise<void> {
   const statements = SCHEMA.split(';').map((s) => s.trim()).filter((s) => s.length > 0);
   await db.batch(statements.map((s) => db.prepare(s)));
 
-  // Migrate legacy scores table if score_change still has NOT NULL constraint
+  // Ensure is_edited column exists in scores
   try {
     const tableInfo = await db.prepare('PRAGMA table_info(scores)').all();
-    const scoreChangeCol = (tableInfo.results ?? []).find((c: any) => c.name === 'score_change');
-    if (scoreChangeCol && scoreChangeCol.notnull === 1) {
-      await db.batch([
-        db.prepare(`
-          CREATE TABLE IF NOT EXISTS scores_new (
-            id INTEGER PRIMARY KEY,
-            round_id INTEGER NOT NULL,
-            player_id INTEGER NOT NULL,
-            score_change INTEGER,
-            cumulative_total INTEGER NOT NULL
-          )
-        `),
-        db.prepare('INSERT INTO scores_new (id, round_id, player_id, score_change, cumulative_total) SELECT id, round_id, player_id, score_change, cumulative_total FROM scores'),
-        db.prepare('DROP TABLE scores'),
-        db.prepare('ALTER TABLE scores_new RENAME TO scores'),
-        db.prepare('CREATE INDEX IF NOT EXISTS idx_scores_round ON scores(round_id)'),
-        db.prepare('CREATE INDEX IF NOT EXISTS idx_scores_player ON scores(player_id)'),
-      ]);
+    const isEditedCol = (tableInfo.results ?? []).find((c: any) => c.name === 'is_edited');
+    if (!isEditedCol) {
+      await db.prepare('ALTER TABLE scores ADD COLUMN is_edited INTEGER NOT NULL DEFAULT 0').run();
     }
+  } catch {
+    // Ignore column addition error
+  }
 
     // Migrate known legacy AFK rounds for Perdi, Bambang, and Dani
-    await db.batch([
-      db.prepare(`
-        UPDATE scores SET score_change = NULL
-        WHERE id IN (
-          SELECT sc.id FROM scores sc
-          JOIN rounds r ON sc.round_id = r.id
-          JOIN players p ON sc.player_id = p.id
-          JOIN sessions s ON r.session_id = s.id
-          WHERE p.name = 'Perdi' AND sc.score_change = 0 AND (
-            s.id = 3
-            OR (s.id = 4 AND r.round_number = 37)
-            OR (s.id = 9 AND r.round_number >= 16)
+    try {
+      await db.batch([
+        db.prepare(`
+          UPDATE scores SET score_change = NULL
+          WHERE id IN (
+            SELECT sc.id FROM scores sc
+            JOIN rounds r ON sc.round_id = r.id
+            JOIN players p ON sc.player_id = p.id
+            JOIN sessions s ON r.session_id = s.id
+            WHERE p.name = 'Perdi' AND sc.score_change = 0 AND (
+              s.id = 3
+              OR (s.id = 4 AND r.round_number = 37)
+              OR (s.id = 9 AND r.round_number >= 16)
+            )
           )
-        )
-      `),
-      db.prepare(`
-        UPDATE scores SET score_change = NULL
-        WHERE id IN (
-          SELECT sc.id FROM scores sc
-          JOIN rounds r ON sc.round_id = r.id
-          JOIN players p ON sc.player_id = p.id
-          JOIN sessions s ON r.session_id = s.id
-          WHERE p.name = 'Bambang' AND s.id = 9 AND sc.score_change = 0
-        )
-      `),
-      db.prepare(`
-        UPDATE scores SET score_change = NULL
-        WHERE id IN (
-          SELECT sc.id FROM scores sc
-          JOIN rounds r ON sc.round_id = r.id
-          JOIN players p ON sc.player_id = p.id
-          JOIN sessions s ON r.session_id = s.id
-          WHERE p.name = 'Dani' AND s.id = 9 AND r.round_number = 25 AND sc.score_change = 0
-        )
-      `),
-    ]);
-  } catch {
-    // Ignore migration errors on already-migrated schemas
+        `),
+        db.prepare(`
+          UPDATE scores SET score_change = NULL
+          WHERE id IN (
+            SELECT sc.id FROM scores sc
+            JOIN rounds r ON sc.round_id = r.id
+            JOIN players p ON sc.player_id = p.id
+            JOIN sessions s ON r.session_id = s.id
+            WHERE p.name = 'Bambang' AND s.id = 9 AND sc.score_change = 0
+          )
+        `),
+        db.prepare(`
+          UPDATE scores SET score_change = NULL
+          WHERE id IN (
+            SELECT sc.id FROM scores sc
+            JOIN rounds r ON sc.round_id = r.id
+            JOIN players p ON sc.player_id = p.id
+            JOIN sessions s ON r.session_id = s.id
+            WHERE p.name = 'Dani' AND s.id = 9 AND r.round_number = 25 AND sc.score_change = 0
+          )
+        `),
+      ]);
+    } catch {
+      // Ignore migration errors on already-migrated schemas
+    }
   }
-}
 
 export interface SyncTables {
   players: { id: number; name: string; circle_id: number; created_at: string }[];
   sessions: { id: number; circle_id: number; label: string | null; status: string; created_at: string; completed_at: string | null }[];
   rounds: { id: number; session_id: number; round_number: number; timestamp: string }[];
-  scores: { id: number; round_id: number; player_id: number; score_change: number | null; cumulative_total: number }[];
+  scores: { id: number; round_id: number; player_id: number; score_change: number | null; cumulative_total: number; is_edited?: number }[];
   session_players: { session_id: number; player_id: number; is_active: number }[];
 }
 
@@ -245,8 +235,8 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload, updated
       .bind(r.id, r.session_id, r.round_number, r.timestamp));
   }
   for (const sc of tables.scores) {
-    stmts.push(db.prepare('INSERT INTO scores (id, round_id, player_id, score_change, cumulative_total) VALUES (?, ?, ?, ?, ?)')
-      .bind(sc.id, sc.round_id, sc.player_id, sc.score_change ?? null, sc.cumulative_total));
+    stmts.push(db.prepare('INSERT INTO scores (id, round_id, player_id, score_change, cumulative_total, is_edited) VALUES (?, ?, ?, ?, ?, ?)')
+      .bind(sc.id, sc.round_id, sc.player_id, sc.score_change ?? null, sc.cumulative_total, sc.is_edited ?? 0));
   }
   for (const sp of tables.session_players) {
     stmts.push(db.prepare('INSERT INTO session_players (session_id, player_id, is_active) VALUES (?, ?, ?)')

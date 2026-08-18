@@ -38,8 +38,14 @@ export default function SessionScreen() {
     let max = 0;
     for (const s of scores) if (s.round_number > max) max = s.round_number;
     const delta = new Map<number, number | null>();
-    for (const s of scores) if (s.round_number === max) delta.set(s.player_id, s.score_change);
-    return { roundNumber: max, delta };
+    const edited = new Map<number, boolean>();
+    for (const s of scores) {
+      if (s.round_number === max) {
+        delta.set(s.player_id, s.score_change);
+        edited.set(s.player_id, s.is_edited === 1);
+      }
+    }
+    return { roundNumber: max, delta, edited };
   }, [scores]);
 
   const confirmEnd = () => {
@@ -86,6 +92,7 @@ export default function SessionScreen() {
                   delta={lastRound.roundNumber > 0 ? (lastRound.delta.get(item.id) ?? null) : null}
                   roundNumber={lastRound.roundNumber}
                   afk={active[item.id] === false}
+                  isEdited={lastRound.edited.get(item.id)}
                   onPress={() =>
                     router.push({
                       pathname: '/session/[id]/player/[playerId]',

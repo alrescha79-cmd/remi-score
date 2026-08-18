@@ -49,7 +49,7 @@ const TABLES: { table: string; cols: string[]; key: keyof BackupTables }[] = [
   { table: 'players', cols: ['id', 'name', 'circle_id', 'created_at'], key: 'players' },
   { table: 'sessions', cols: ['id', 'circle_id', 'label', 'status', 'created_at', 'completed_at'], key: 'sessions' },
   { table: 'rounds', cols: ['id', 'session_id', 'round_number', 'timestamp'], key: 'rounds' },
-  { table: 'scores', cols: ['id', 'round_id', 'player_id', 'score_change', 'cumulative_total'], key: 'scores' },
+  { table: 'scores', cols: ['id', 'round_id', 'player_id', 'score_change', 'cumulative_total', 'is_edited'], key: 'scores' },
   { table: 'session_players', cols: ['session_id', 'player_id', 'is_active'], key: 'session_players' },
 ];
 

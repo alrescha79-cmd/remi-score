@@ -309,7 +309,6 @@ export default function CircleScreen() {
                 style={{ borderColor: border, backgroundColor: surface }}
               >
                 <TouchableOpacity
-                  disabled={active}
                   onPress={() => router.push({ pathname: '/session/[id]', params: { id: String(session.id) } })}
                   accessibilityRole="button"
                   className="min-w-0 flex-1"

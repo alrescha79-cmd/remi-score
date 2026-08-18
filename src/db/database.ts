@@ -113,6 +113,9 @@ const MIGRATIONS: string[] = [
     WHERE p.name = 'Dani' AND s.id = 9 AND r.round_number = 25 AND sc.score_change = 0
   );
   `,
+  `
+  ALTER TABLE scores ADD COLUMN is_edited INTEGER NOT NULL DEFAULT 0;
+  `,
 ];
 
 let dbPromise: Promise<SQLiteDatabase> | null = null;
