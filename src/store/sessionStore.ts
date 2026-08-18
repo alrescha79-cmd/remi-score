@@ -21,6 +21,7 @@ interface SessionState {
   sessionId: number | null;
   circleId: number | null;
   label: string | null;
+  status: string;
   players: Player[];
   scores: ScoreRow[];
   totals: Record<number, number>;
@@ -97,6 +98,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
   sessionId: null,
   circleId: null,
   label: null,
+  status: 'active',
   players: [],
   scores: [],
   totals: {},
@@ -144,6 +146,7 @@ export const useSessionStore = create<SessionState>((set, get) => ({
       set({
         circleId: session.circle_id,
         label: session.label,
+        status: session.status,
         players,
         scores,
         active,
