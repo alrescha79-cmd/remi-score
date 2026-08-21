@@ -5,7 +5,7 @@ import Layout from './layout';
 interface Player { id: number; name: string }
 interface LeaderboardEntry { player: Player; total: number; sessionsPlayed: number; wins: number }
 interface SessionRow { id: number; seq: number; label: string | null; status: string; created_at: string; completed_at: string | null; winnerName: string | null }
-interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; isEdited?: boolean; roundCount: number }
+interface LiveScore { player: Player; total: number; rank: number; rankChange: 'up' | 'down' | 'same' | null; lastDelta: number | null; isEdited?: boolean; closedCard?: string | null; roundCount: number }
 
 interface CirclePageProps {
   code: string;
@@ -22,6 +22,21 @@ function medal(rank: number): string {
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
   return `#${rank}`;
+}
+
+function getWebClosedBadge(type: string | null | undefined) {
+  switch (type) {
+    case 'number':
+      return { class: 'bg-emerald-100 text-emerald-800 border-emerald-300', label: '🃖 +50' };
+    case 'letter':
+      return { class: 'bg-blue-100 text-blue-800 border-blue-300', label: '🂭 +100' };
+    case 'ace':
+      return { class: 'bg-amber-100 text-amber-800 border-amber-300', label: '🃁 +150' };
+    case 'joker':
+      return { class: 'bg-purple-100 text-purple-800 border-purple-300', label: '🃏 +250' };
+    default:
+      return { class: 'bg-amber-100 text-amber-800 border-amber-300', label: '🎴 TUTUP' };
+  }
 }
 
 const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboard, live, liveSessionId, recentSessions }) => (
@@ -80,14 +95,22 @@ const CirclePage: FC<CirclePageProps> = ({ code, circleName, syncedAt, leaderboa
                   <span class="ml-2 text-[10px] font-extrabold px-1.5 py-0.5 rounded border border-ink/30 bg-bg text-muted">
                     AFK
                   </span>
-                ) : entry.lastDelta !== 0 && (
+                ) : (
                   <div class="inline-flex items-center gap-1 ml-2">
+                    {entry.closedCard && (() => {
+                      const badge = getWebClosedBadge(entry.closedCard);
+                      return (
+                        <span class={`text-[9px] font-extrabold uppercase border px-1 py-0.5 rounded ${badge.class}`}>
+                          {badge.label}
+                        </span>
+                      );
+                    })()}
                     {entry.isEdited && (
                       <span class="text-[9px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.5 rounded">
                         edit
                       </span>
                     )}
-                    <span class={`text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : 'bg-bad/15 text-bad'}`}>
+                    <span class={`text-xs font-extrabold px-1.5 py-0.5 rounded border border-ink/30 ${entry.lastDelta > 0 ? 'bg-good/15 text-good' : entry.lastDelta < 0 ? 'bg-bad/15 text-bad' : 'bg-bg text-muted'}`}>
                       {entry.lastDelta > 0 ? '+' : ''}{entry.lastDelta}
                     </span>
                   </div>

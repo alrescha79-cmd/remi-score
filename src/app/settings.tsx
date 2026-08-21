@@ -4,7 +4,6 @@ import { Pressable, ScrollView, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import CloudSyncSection from '@/components/CloudSyncSection';
 import ScreenHeader from '@/components/ScreenHeader';
-import SheetSyncSection from '@/components/SheetSyncSection';
 import { useT } from '@/lib/i18n';
 import { useThemeColor } from '@/lib/theme';
 import { useSettingsStore, type Lang, type ThemePref } from '@/store/settingsStore';
@@ -101,7 +100,6 @@ export default function SettingsScreen() {
         </View>
 
         <CloudSyncSection />
-        <SheetSyncSection />
       </ScrollView>
     </SafeAreaView>
   );

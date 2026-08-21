@@ -1,10 +1,13 @@
 import ConfirmDialog, { type ConfirmDialogOptions } from '@/components/ConfirmDialog';
+import CloseCardModal, { CARD_POINTS } from '@/components/CloseCardModal';
 import ScreenHeader from '@/components/ScreenHeader';
 import StepperRow from '@/components/StepperRow';
+import type { ClosedCardType } from '@/db/models';
 import { useT } from '@/lib/i18n';
 import { formatSignedScore, validateScore } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
@@ -16,7 +19,8 @@ export default function AddRoundScreen() {
   const sessionId = Number(id);
   const router = useRouter();
   const t = useT();
-  const { players, totals, scores, active, load, addRound, setActive } = useSessionStore();
+  const { players, circleId, totals, scores, active, load, addRound, setActive } = useSessionStore();
+  const shareCode = useSettingsStore((s) => (circleId ? s.shareCodes[circleId] : null));
   const bg = useThemeColor('bg');
   const surface = useThemeColor('surface');
   const surfaceElevated = useThemeColor('surfaceElevated');
@@ -31,9 +35,11 @@ export default function AddRoundScreen() {
   const badInk = useThemeColor('badInk');
   const primaryInk = useThemeColor('primaryInk');
   const [overrides, setOverrides] = useState<Record<number, number>>({});
+  const [closedCards, setClosedCards] = useState<Record<number, ClosedCardType | null>>({});
   const [activeOverrides, setActiveOverrides] = useState<Record<number, boolean>>({});
   const [saving, setSaving] = useState(false);
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
+  const [selectedPlayerForClose, setSelectedPlayerForClose] = useState<{ id: number; name: string } | null>(null);
 
   // Always refresh from DB on focus so the persisted AFK state is reflected
   // every time the screen is opened (AFK persists across rounds until
@@ -42,6 +48,7 @@ export default function AddRoundScreen() {
     useCallback(() => {
       load(sessionId);
       setActiveOverrides({});
+      setClosedCards({});
     }, [load, sessionId])
   );
 
@@ -53,6 +60,9 @@ export default function AddRoundScreen() {
   const handleToggleActive = (playerId: number, isPlay: boolean) => {
     setActiveOverrides((prev) => ({ ...prev, [playerId]: isPlay }));
     setActive(playerId, isPlay);
+    if (!isPlay) {
+      setClosedCards((prev) => ({ ...prev, [playerId]: null }));
+    }
   };
 
   const entries: Record<number, number | null> = {};
@@ -61,13 +71,33 @@ export default function AddRoundScreen() {
   const setEntry = (playerId: number, value: number) =>
     setOverrides((prev) => ({ ...prev, [playerId]: value }));
 
+  const handleSelectCloseCard = (playerId: number, type: ClosedCardType, points: number) => {
+    const prevType = closedCards[playerId];
+    const prevPoints = prevType ? CARD_POINTS[prevType] : 0;
+    const currentVal = entries[playerId] ?? 0;
+    // Replace old close card points with new close card points
+    const newVal = currentVal - prevPoints + points;
+    setEntry(playerId, newVal);
+    setClosedCards((prev) => ({ ...prev, [playerId]: type }));
+  };
+
+  const handleRemoveCloseCard = (playerId: number) => {
+    const prevType = closedCards[playerId];
+    if (prevType) {
+      const prevPoints = CARD_POINTS[prevType];
+      const currentVal = entries[playerId] ?? 0;
+      setEntry(playerId, currentVal - prevPoints);
+      setClosedCards((prev) => ({ ...prev, [playerId]: null }));
+    }
+  };
+
   const roundNumber = scores.reduce((max, s) => Math.max(max, s.round_number), 0) + 1;
   const invalid = players.some((p) => isPlayerActive(p.id) && !validateScore(entries[p.id]));
 
   const sortedPlayers = useMemo(() => {
     return [...players].sort((a, b) => {
-      const aActive = isPlayerActive(a.id);
-      const bActive = isPlayerActive(b.id);
+      const aActive = activeOverrides[a.id] !== undefined ? activeOverrides[a.id] : active[a.id] !== false;
+      const bActive = activeOverrides[b.id] !== undefined ? activeOverrides[b.id] : active[b.id] !== false;
       if (aActive && !bActive) return -1;
       if (!aActive && bActive) return 1;
       return 0;
@@ -87,13 +117,20 @@ export default function AddRoundScreen() {
 
   const resetAllScores = () => {
     setOverrides({});
+    setClosedCards({});
   };
 
   const save = async () => {
     if (invalid) return;
     setSaving(true);
     try {
-      await addRound(players.map((p) => ({ playerId: p.id, scoreChange: entries[p.id] })));
+      await addRound(
+        players.map((p) => ({
+          playerId: p.id,
+          scoreChange: entries[p.id],
+          closedCard: isPlayerActive(p.id) ? closedCards[p.id] ?? null : null,
+        }))
+      );
       router.back();
     } catch (e) {
       setSaving(false);
@@ -114,6 +151,7 @@ export default function AddRoundScreen() {
       <ScreenHeader
         compact
         title={t('round.title', { n: roundNumber })}
+        shareCode={shareCode}
         onBack={() => router.back()}
       />
 
@@ -154,6 +192,9 @@ export default function AddRoundScreen() {
           const isActive = isPlayerActive(p.id);
           const currentTotal = totals[p.id] ?? 0;
           const delta = entries[p.id];
+          const hasAnyCloser = Object.values(closedCards).some((c) => c != null);
+          const isThisCloser = closedCards[p.id] != null;
+          const isCloseDisabled = hasAnyCloser && !isThisCloser;
 
           return (
             <View
@@ -185,7 +226,29 @@ export default function AddRoundScreen() {
                   </View>
                 </View>
 
-                <View className="ml-2 flex-row rounded-brutal border-2 p-0.5" style={{ borderColor: border }}>
+                {isActive && (
+                  <TouchableOpacity
+                    onPress={() => setSelectedPlayerForClose({ id: p.id, name: p.name })}
+                    disabled={isCloseDisabled}
+                    accessibilityRole="button"
+                    className="mr-2 flex-row items-center gap-1 rounded-brutal border-2 px-2 py-1"
+                    style={{
+                      borderColor: isThisCloser ? primary : isCloseDisabled ? inkFaint : border,
+                      backgroundColor: isThisCloser ? primary : surfaceElevated,
+                      opacity: isCloseDisabled ? 0.35 : 1,
+                    }}
+                  >
+                    <Text className="text-sm">{closedCards[p.id] ? (closedCards[p.id] === 'number' ? '🃖' : closedCards[p.id] === 'letter' ? '🂭' : closedCards[p.id] === 'ace' ? '🃁' : '🃏') : '🎴'}</Text>
+                    <Text
+                      className="text-[11px] font-extrabold"
+                      style={{ color: isThisCloser ? primaryInk : isCloseDisabled ? inkMuted : ink }}
+                    >
+                      {isThisCloser ? `+${CARD_POINTS[closedCards[p.id]!]}` : t('round.closeCard')}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                <View className="ml-1 flex-row rounded-brutal border-2 p-0.5" style={{ borderColor: border }}>
                   <TouchableOpacity
                     onPress={() => handleToggleActive(p.id, true)}
                     accessibilityRole="button"
@@ -245,6 +308,22 @@ export default function AddRoundScreen() {
       </View>
 
       <ConfirmDialog options={confirm} onDismiss={() => setConfirm(null)} />
+      <CloseCardModal
+        visible={selectedPlayerForClose !== null}
+        playerName={selectedPlayerForClose?.name ?? ''}
+        currentType={selectedPlayerForClose ? closedCards[selectedPlayerForClose.id] : null}
+        onSelect={(type, points) => {
+          if (selectedPlayerForClose) {
+            handleSelectCloseCard(selectedPlayerForClose.id, type, points);
+          }
+        }}
+        onRemove={() => {
+          if (selectedPlayerForClose) {
+            handleRemoveCloseCard(selectedPlayerForClose.id);
+          }
+        }}
+        onClose={() => setSelectedPlayerForClose(null)}
+      />
     </SafeAreaView>
   );
 }

@@ -15,7 +15,6 @@ Pencatatan skor Remi digital untuk geng tongkrongan. Gantiin notebook yang gampa
   3. Sesi dimainkan paling sedikit (ASC)
 - **Detail Profil Pemain Lengkap** — Profil pemain di aplikasi menampilkan statistik lengkap: total poin, poin/sesi, poin/ronde, ronde main (aktif), ronde tergacor (peak), ronde ter-apes (worst), sesi main, kemenangan, serta riwayat track record sesi dengan nomor urut sequential.
 - **Dashboard Web Live (Cloudflare Worker)** — Sinkronkan geng menggunakan kode share ke Cloudflare D1. Teman-teman bisa memantau jalannya pertandingan secara real-time langsung dari browser.
-- **Backup Google Sheets** — export & import semua data (geng, pemain, sesi, skor) ke spreadsheet via Apps Script webhook. Tanpa OAuth di app.
 - **Tema & bahasa** — mode System/Light/Dark + bahasa Indonesia/English (copy khas tongkrongan 😄).
 
 ## Tech stack
@@ -37,7 +36,7 @@ src/
 ├── app/                       # Expo Router screens
 │   ├── _layout.tsx            # Stack + sistem tema
 │   ├── index.tsx              # Home: daftar geng
-│   ├── settings.tsx           # Setelan tema, bahasa, backup Google Sheets, dan Cloud Worker
+│   ├── settings.tsx           # Setelan tema, bahasa, dan Cloud Worker
 │   ├── circle/[id].tsx        # Detail geng: pemain, klasemen musim, riwayat
 │   ├── circle/[id]/player/[playerId].tsx # Profil lengkap pemain di tingkat circle
 │   ├── session/[id].tsx       # Sesi live: ranking real-time, riwayat ronde
@@ -49,7 +48,7 @@ src/
 │   ├── circleRepo / playerRepo / sessionRepo / leaderboardRepo
 ├── store/
 │   ├── sessionStore.ts        # Zustand: total & ranking live, load fallback, cloudSync
-│   └── settingsStore.ts       # Persist tema, bahasa, URL webhook sheets, URL Worker
+│   └── settingsStore.ts       # Persist tema, bahasa, URL Worker
 ├── lib/
 │   ├── score.ts               # logika murni: validasi ±5, kumulatif, ranking, tie-breaker
 │   ├── format.ts              # format timestamp & tanggal (Intl)
@@ -99,39 +98,6 @@ scores   (id, round_id → rounds, player_id → players, score_change, cumulati
 ```
 
 Semua operasi data lewat `src/db/*Repo` — ganti implementasi repo ke Firebase/Supabase nanti tanpa menyentuh UI.
-
-## Backup Google Sheets (Apps Script)
-
-Backup butuh satu kali setup: buat Google Apps Script, tempel kode di bawah, deploy sebagai **Web App** dengan akses **Anyone**, lalu tempel URL `…/exec` di **Settings → Google Sheets backup**.
-
-1. Buka [script.google.com](https://script.google.com) → **New project**.
-2. Salin isi [`apps-script/Code.gs`](apps-script/Code.gs) dan tempel ke editor. **Tidak perlu edit apa pun** — script otomatis memakai spreadsheet aktif/atau membuat `RemiScoreBackup` di Drive. (Opsional: mau paksa spreadsheet tertentu, isi `OVERRIDE_SPREADSHEET_ID` dengan ID-nya.)
-
-3. **Deploy → New deployment → Web app**:
-   - **Execute as**: *Me*
-   - **Who has access**: *Anyone*
-4. Saat muncul peringatan **"Google hasn't verified this app"** — normal, karena script belum diverifikasi Google. Karena ini script punyamu sendiri, aman lewati: klik **Advanced → Go to [nama project] (unsafe) → Allow**. Ini cukup sekali saja.
-5. **Test script dulu langsung dari editor** (sebelum nyobain di app):
-   - Pilih fungsi `test` di dropdown (gantikan `myFunction`), klik **Run** → izinkan authorization.
-   - Buka **View → Logs**. Kalau keluar:
-     ```
-     POST -> {"ok":true}
-     GET  -> {"test":true,"at":"..."}
-     ```
-     berarti script bekerja. Cek Drive: spreadsheet `RemiScoreBackup` dibuat, tab `RemiScoreBackup` terisi JSON.
-   - Kalau ada error, pesan lengkapnya muncul di Logs — perbaiki dulu di sini.
-6. Setelah script terbukti jalan: **Deploy → New deployment → Web app** (Execute as: *Me*, Who has access: *Anyone*) → **Authorize**.
-7. Salin **Web app URL**, tempel di Settings → Google Sheets backup.
-
-Backup ditulis ke spreadsheet kamu sebagai tab-tab tabel (headers + row, mudah dibaca):
-
-- `Circles` / `Players` / `Sessions` / `Rounds` / `Scores` / `SessionPlayers`
-- Tab `RemiScoreBackup` (disembunyikan) berisi JSON mentah — dipakai app saat import, jangan dihapus.
-
-Catatan:
-- **Export**: menimpa seluruh isi sheet dengan backup terbaru.
-- **Import**: mengganti **semua** data lokal dengan isi sheet (dikonfirmasi dulu). Last-write-wins, tidak ada merge cerdas.
-- Data dikirim tanpa autentikasi — jangan pakai webhook Apps Script untuk data yang butuh kerahasiaan ekstra.
 
 ## Build APK
 

@@ -10,6 +10,7 @@ import ScreenHeader from '@/components/ScreenHeader';
 import { useT } from '@/lib/i18n';
 import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 export default function SessionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -17,7 +18,6 @@ export default function SessionScreen() {
   const router = useRouter();
   const t = useT();
   const bg = useThemeColor('bg');
-  const surface = useThemeColor('surface');
   const surfaceElevated = useThemeColor('surfaceElevated');
   const ink = useThemeColor('ink');
   const inkMuted = useThemeColor('inkMuted');
@@ -25,7 +25,8 @@ export default function SessionScreen() {
   const primary = useThemeColor('primary');
   const bad = useThemeColor('bad');
   const primaryInk = useThemeColor('primaryInk');
-  const { players, ranking, scores, totals, active, status, loading, error, load, finish } = useSessionStore();
+  const { players, circleId, ranking, scores, totals, active, status, loading, error, load, finish } = useSessionStore();
+  const shareCode = useSettingsStore((s) => (circleId ? s.shareCodes[circleId] : null));
   const [confirm, setConfirm] = useState<ConfirmDialogOptions | null>(null);
 
   useFocusEffect(
@@ -39,13 +40,15 @@ export default function SessionScreen() {
     for (const s of scores) if (s.round_number > max) max = s.round_number;
     const delta = new Map<number, number | null>();
     const edited = new Map<number, boolean>();
+    const closed = new Map<number, string | null>();
     for (const s of scores) {
       if (s.round_number === max) {
         delta.set(s.player_id, s.score_change);
         edited.set(s.player_id, s.is_edited === 1);
+        closed.set(s.player_id, s.closed_card ?? null);
       }
     }
-    return { roundNumber: max, delta, edited };
+    return { roundNumber: max, delta, edited, closed };
   }, [scores]);
 
   const confirmEnd = () => {
@@ -67,6 +70,7 @@ export default function SessionScreen() {
       <ScreenHeader
         title={t('session.live')}
         subtitle={`${lastRound.roundNumber} ${t(lastRound.roundNumber === 1 ? 'session.rounds' : 'session.roundsMany')} · ${players.length} ${t(players.length === 1 ? 'session.players' : 'session.playersMany')}`}
+        shareCode={shareCode}
         onBack={() => router.back()}
       />
 
@@ -93,6 +97,7 @@ export default function SessionScreen() {
                   roundNumber={lastRound.roundNumber}
                   afk={active[item.id] === false}
                   isEdited={lastRound.edited.get(item.id)}
+                  closedCard={lastRound.closed.get(item.id)}
                   onPress={() =>
                     router.push({
                       pathname: '/session/[id]/player/[playerId]',

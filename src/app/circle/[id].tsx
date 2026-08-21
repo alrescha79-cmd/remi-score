@@ -75,6 +75,7 @@ export default function CircleScreen() {
 
   const cloudSyncMode = useSettingsStore((s) => s.cloudSyncMode);
   const isJoined = useSettingsStore((s) => s.circleSyncMeta[circleId]?.remoteCircleId != null);
+  const shareCode = useSettingsStore((s) => s.shareCodes[circleId] ?? null);
 
   useFocusEffect(
     useCallback(() => {
@@ -171,7 +172,11 @@ export default function CircleScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
-      <ScreenHeader title={circle?.name ?? 'Circle'} onBack={() => router.back()} />
+      <ScreenHeader
+        title={circle?.name ?? 'Circle'}
+        shareCode={shareCode}
+        onBack={() => router.back()}
+      />
 
       <ScrollView className="flex-1 px-5" contentContainerStyle={{ paddingBottom: 40 }}>
         <TouchableOpacity

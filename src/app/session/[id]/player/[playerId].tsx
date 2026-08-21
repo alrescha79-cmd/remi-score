@@ -8,6 +8,7 @@ import { useT } from '@/lib/i18n';
 import { formatSignedScore } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
 import { useSessionStore } from '@/store/sessionStore';
+import { useSettingsStore } from '@/store/settingsStore';
 
 function scoreColor(value: number | null, good: string, bad: string, muted: string): string {
   if (value === null) return muted;
@@ -19,13 +20,59 @@ function formatAvg(val: number): string {
   return val > 0 ? `+${formatted}` : formatted;
 }
 
+function getClosedBadgeStyle(type: string | null | undefined) {
+  switch (type) {
+    case 'number':
+      return {
+        bg: 'bg-emerald-100 dark:bg-emerald-950/40',
+        border: 'border-emerald-400 dark:border-emerald-600',
+        text: 'text-emerald-800 dark:text-emerald-300',
+        icon: '🃖',
+        label: '50',
+      };
+    case 'letter':
+      return {
+        bg: 'bg-blue-100 dark:bg-blue-950/40',
+        border: 'border-blue-400 dark:border-blue-600',
+        text: 'text-blue-800 dark:text-blue-300',
+        icon: '🂭',
+        label: '100',
+      };
+    case 'ace':
+      return {
+        bg: 'bg-amber-100 dark:bg-amber-950/40',
+        border: 'border-amber-400 dark:border-amber-600',
+        text: 'text-amber-800 dark:text-amber-300',
+        icon: '🃁',
+        label: '150',
+      };
+    case 'joker':
+      return {
+        bg: 'bg-purple-100 dark:bg-purple-950/40',
+        border: 'border-purple-400 dark:border-purple-600',
+        text: 'text-purple-800 dark:text-purple-300',
+        icon: '🃏',
+        label: '250',
+      };
+    default:
+      return {
+        bg: 'bg-amber-100 dark:bg-amber-950/40',
+        border: 'border-amber-400 dark:border-amber-600',
+        text: 'text-amber-800 dark:text-amber-300',
+        icon: '🎴',
+        label: '',
+      };
+  }
+}
+
 export default function PlayerDetailScreen() {
   const { id, playerId } = useLocalSearchParams<{ id: string; playerId: string }>();
   const sessionId = Number(id);
   const pid = Number(playerId);
   const router = useRouter();
   const t = useT();
-  const { players, scores, totals, loading, load } = useSessionStore();
+  const { players, circleId, scores, totals, loading, load } = useSessionStore();
+  const shareCode = useSettingsStore((s) => (circleId ? s.shareCodes[circleId] : null));
 
   const bg = useThemeColor('bg');
   const surface = useThemeColor('surface');
@@ -108,6 +155,7 @@ export default function PlayerDetailScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader
         title={player.name}
+        shareCode={shareCode}
         onBack={() => router.back()}
         right={
           <Text
@@ -196,14 +244,26 @@ export default function PlayerDetailScreen() {
                 </Text>
                 <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>{formatTime(r.timestamp)}</Text>
               </View>
-              <View className="w-16 flex-col items-end justify-center">
+              <View className="flex-1 flex-row items-center justify-end gap-1.5">
+                {r.closed_card != null && r.score_change !== null && (() => {
+                  const s = getClosedBadgeStyle(r.closed_card);
+                  return (
+                    <View className={`rounded ${s.bg} border ${s.border} px-1.5 py-0.5`}>
+                      <Text className={`text-[9px] font-extrabold uppercase ${s.text}`}>
+                        {s.icon} {s.label ? `+${s.label}` : t('round.closedBadge')}
+                      </Text>
+                    </View>
+                  );
+                })()}
                 {r.is_edited === 1 && r.score_change !== null && (
-                  <Text className="text-[8px] font-extrabold uppercase text-primary -mb-0.5">
-                    edit
-                  </Text>
+                  <View className="rounded bg-primary/10 border border-primary/30 px-1 py-0.5">
+                    <Text className="text-[8px] font-extrabold uppercase text-primary">
+                      edit
+                    </Text>
+                  </View>
                 )}
                 <Text
-                  className="text-right text-base font-extrabold tabular-nums"
+                  className="min-w-[44px] text-right text-base font-extrabold tabular-nums"
                   style={{ color: scoreColor(r.score_change, good, bad, inkMuted) }}
                 >
                   {r.score_change === null ? t('round.absentShort') : formatSignedScore(r.score_change)}

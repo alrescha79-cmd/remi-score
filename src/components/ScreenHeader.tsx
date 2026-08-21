@@ -6,15 +6,16 @@ import { useThemeColor } from '@/lib/theme';
 interface ScreenHeaderProps {
   title: string;
   subtitle?: string;
+  shareCode?: string | null;
   onBack?: () => void;
   right?: ReactNode;
   backLabel?: string;
   compact?: boolean;
 }
 
-export default function ScreenHeader({ title, subtitle, onBack, right, backLabel, compact }: ScreenHeaderProps) {
-  const bg = useThemeColor('bg');
+export default function ScreenHeader({ title, subtitle, shareCode, onBack, right, backLabel, compact }: ScreenHeaderProps) {
   const surface = useThemeColor('surface');
+  const surfaceElevated = useThemeColor('surfaceElevated');
   const ink = useThemeColor('ink');
   const inkMuted = useThemeColor('inkMuted');
   const border = useThemeColor('border');
@@ -36,15 +37,27 @@ export default function ScreenHeader({ title, subtitle, onBack, right, backLabel
         </TouchableOpacity>
       )}
       <View className="min-w-0 flex-1">
-        <Text
-          className={`font-extrabold tracking-tight ${
-            compact ? 'text-lg' : 'text-xl'
-          }`}
-          style={{ color: ink }}
-          numberOfLines={1}
-        >
-          {title}
-        </Text>
+        <View className="flex-row items-center gap-2">
+          <Text
+            className={`font-extrabold tracking-tight ${
+              compact ? 'text-lg' : 'text-xl'
+            }`}
+            style={{ color: ink }}
+            numberOfLines={1}
+          >
+            {title}
+          </Text>
+          {shareCode && (
+            <View
+              className="rounded-md border px-1.5 py-0.5"
+              style={{ borderColor: border, backgroundColor: surfaceElevated }}
+            >
+              <Text className="font-mono text-[11px] font-extrabold" style={{ color: ink }}>
+                {shareCode}
+              </Text>
+            </View>
+          )}
+        </View>
         {subtitle != null && !compact && (
           <Text className="mt-0.5 text-xs" style={{ color: inkMuted }} numberOfLines={1}>
             {subtitle}

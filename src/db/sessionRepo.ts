@@ -133,11 +133,12 @@ export async function addRound(sessionId: number, entries: RoundEntry[]): Promis
       const isAfk = active.get(entry.playerId) === false || entry.scoreChange === null;
       const change = isAfk ? null : entry.scoreChange;
       await db.runAsync(
-        'INSERT INTO scores (round_id, player_id, score_change, cumulative_total) VALUES (?, ?, ?, ?)',
+        'INSERT INTO scores (round_id, player_id, score_change, cumulative_total, closed_card) VALUES (?, ?, ?, ?, ?)',
         roundId,
         entry.playerId,
         change,
-        base + (change ?? 0)
+        base + (change ?? 0),
+        entry.closedCard ?? null
       );
 
       // Persist the active/AFK state so future rounds automatically maintain it.
@@ -210,8 +211,8 @@ export async function updateRound(
     const prevByPlayer = new Map(prev.map((p) => [p.player_id, p.cumulative_total]));
 
     // Current score rows before editing to compare differences.
-    const currentScores = await db.getAllAsync<{ player_id: number; score_change: number | null; is_edited: number }>(
-      'SELECT player_id, score_change, is_edited FROM scores WHERE round_id = ?',
+    const currentScores = await db.getAllAsync<{ player_id: number; score_change: number | null; is_edited: number; closed_card: string | null }>(
+      'SELECT player_id, score_change, is_edited, closed_card FROM scores WHERE round_id = ?',
       round.id
     );
     const curScoresMap = new Map(currentScores.map((c) => [c.player_id, c]));
@@ -222,16 +223,18 @@ export async function updateRound(
       const change = isAfk ? null : entry.scoreChange;
       const base = prevByPlayer.get(entry.playerId) ?? 0;
       const cur = curScoresMap.get(entry.playerId);
-      // Mark edited ONLY if score_change actually changed, or preserve if already edited.
-      const changed = cur ? cur.score_change !== change : true;
+      const closedCard = isAfk ? null : (entry.closedCard !== undefined ? entry.closedCard : cur?.closed_card ?? null);
+      // Mark edited ONLY if score_change or closedCard actually changed, or preserve if already edited.
+      const changed = cur ? (cur.score_change !== change || cur.closed_card !== closedCard) : true;
       const isEdited = (cur?.is_edited === 1 || changed) ? 1 : 0;
 
       await db.runAsync(
-        `UPDATE scores SET score_change = ?, cumulative_total = ?, is_edited = ?
+        `UPDATE scores SET score_change = ?, cumulative_total = ?, is_edited = ?, closed_card = ?
          WHERE round_id = ? AND player_id = ?`,
         change,
         base + (change ?? 0),
         isEdited,
+        closedCard,
         round.id,
         entry.playerId
       );

@@ -29,6 +29,8 @@ export interface Round {
   timestamp: string;
 }
 
+export type ClosedCardType = 'number' | 'letter' | 'ace' | 'joker';
+
 export interface Score {
   id: number;
   round_id: number;
@@ -36,6 +38,7 @@ export interface Score {
   score_change: number | null;
   cumulative_total: number;
   is_edited?: number;
+  closed_card?: ClosedCardType | null;
 }
 
 export interface CircleStats {
@@ -55,6 +58,7 @@ export interface SessionPlayer {
 export interface RoundEntry {
   playerId: number;
   scoreChange: number | null;
+  closedCard?: ClosedCardType | null;
 }
 
 export interface ScoreRow extends Score {

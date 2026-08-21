@@ -56,12 +56,12 @@ const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, liveCo
       <div class="mx-auto max-w-lg px-4 py-6">
         {children}
       </div>
-      {liveCode && syncedAt && (
+      {liveCode && (
         <script dangerouslySetInnerHTML={{
           __html: `
             (function() {
               var code = ${JSON.stringify(liveCode)};
-              var current = ${JSON.stringify(syncedAt)};
+              var current = ${JSON.stringify(syncedAt ?? '')};
               var timer = null;
               function check() {
                 if (document.hidden) return;
@@ -76,7 +76,7 @@ const Layout: FC<PropsWithChildren<LayoutProps>> = ({ title, description, liveCo
               }
               function start() {
                 if (timer) clearInterval(timer);
-                timer = setInterval(check, 3000);
+                timer = setInterval(check, 2500);
               }
               document.addEventListener('visibilitychange', function() {
                 if (!document.hidden) { check(); start(); }
