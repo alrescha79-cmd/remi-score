@@ -9,7 +9,7 @@ import { createCircle, deleteCircle, listCircles } from '@/db/circleRepo';
 import { purgeSyncMapForCircle, syncCircleFromSnapshot } from '@/db/cloudSyncRepo';
 import type { CircleWithStats } from '@/db/models';
 import { deleteCloudCircle, pullCloudSync } from '@/lib/cloudSync';
-import { DEFAULT_CLOUD_WORKER_URL, validateShareCode } from '@/lib/cloudSyncCore';
+import { DEFAULT_CLOUD_WORKER_URL, generateShareCode, validateShareCode } from '@/lib/cloudSyncCore';
 import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { useThemeColor } from '@/lib/theme';
@@ -54,6 +54,8 @@ export default function HomeScreen() {
   const submit = async () => {
     if (!name.trim()) return;
     const id = await createCircle(name);
+    const code = generateShareCode();
+    useSettingsStore.getState().setShareCode(id, code);
     setName('');
     setModalVisible(false);
     router.push({ pathname: '/circle/[id]', params: { id: String(id) } });

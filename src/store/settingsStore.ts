@@ -16,8 +16,6 @@ export interface CircleSyncMeta {
 interface SettingsState {
   theme: ThemePref;
   lang: Lang;
-  sheetWebhookUrl: string;
-  lastSyncAt: string | null;
   cloudWorkerUrl: string;
   cloudSyncMode: CloudSyncMode;
   lastCloudSyncAt: string | null;
@@ -25,8 +23,6 @@ interface SettingsState {
   circleSyncMeta: Record<number, CircleSyncMeta>;
   setTheme: (theme: ThemePref) => void;
   setLang: (lang: Lang) => void;
-  setSheetWebhookUrl: (url: string) => void;
-  setLastSyncAt: (iso: string) => void;
   setCloudWorkerUrl: (url: string) => void;
   setCloudSyncMode: (mode: CloudSyncMode) => void;
   setLastCloudSyncAt: (iso: string) => void;
@@ -41,8 +37,6 @@ export const useSettingsStore = create<SettingsState>()(
     (set) => ({
       theme: 'system',
       lang: 'en',
-      sheetWebhookUrl: '',
-      lastSyncAt: null,
       cloudWorkerUrl: 'https://kopek.cakson.my.id',
       cloudSyncMode: 'off',
       lastCloudSyncAt: null,
@@ -50,8 +44,6 @@ export const useSettingsStore = create<SettingsState>()(
       circleSyncMeta: {},
       setTheme: (theme) => set({ theme }),
       setLang: (lang) => set({ lang }),
-      setSheetWebhookUrl: (sheetWebhookUrl) => set({ sheetWebhookUrl }),
-      setLastSyncAt: (lastSyncAt) => set({ lastSyncAt }),
       setCloudWorkerUrl: (cloudWorkerUrl) => set({ cloudWorkerUrl }),
       setCloudSyncMode: (cloudSyncMode) => set({ cloudSyncMode }),
       setLastCloudSyncAt: (lastCloudSyncAt) => set({ lastCloudSyncAt }),

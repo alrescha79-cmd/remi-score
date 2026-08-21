@@ -3,7 +3,7 @@ import type { FC } from 'hono/jsx';
 import Layout from './layout';
 
 interface Player { id: number; name: string }
-interface RoundScore { roundNumber: number; scores: { player: Player; change: number | null; total: number; isEdited?: boolean }[] }
+interface RoundScore { roundNumber: number; scores: { player: Player; change: number | null; total: number; isEdited?: boolean; closedCard?: string | null }[] }
 
 interface SessionPageProps {
   code: string;
@@ -21,6 +21,21 @@ function medal(rank: number): string {
   if (rank === 2) return '🥈';
   if (rank === 3) return '🥉';
   return `#${rank}`;
+}
+
+function getWebClosedBadge(type: string | null | undefined) {
+  switch (type) {
+    case 'number':
+      return { class: 'bg-emerald-100 text-emerald-800 border-emerald-300', emoji: '🃖' };
+    case 'letter':
+      return { class: 'bg-blue-100 text-blue-800 border-blue-300', emoji: '🂭' };
+    case 'ace':
+      return { class: 'bg-amber-100 text-amber-800 border-amber-300', emoji: '🃁' };
+    case 'joker':
+      return { class: 'bg-purple-100 text-purple-800 border-purple-300', emoji: '🃏' };
+    default:
+      return { class: 'bg-amber-100 text-amber-800 border-amber-300', emoji: '🎴' };
+  }
 }
 
 const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, sessionSeq, sessionLabel, status, rounds, players }) => (
@@ -76,6 +91,7 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, session
                     const sc = r.scores.find((s) => s.player.id === p.id);
                     const change = sc ? sc.change : null;
                     const isEdited = sc?.isEdited === true;
+                    const isClosed = sc?.closedCard != null;
                     return (
                       <td class="px-3 py-3 text-center font-mono text-xs">
                         {change === null ? (
@@ -87,6 +103,14 @@ const SessionPage: FC<SessionPageProps> = ({ code, circleName, syncedAt, session
                             <span class={`inline-block px-1.5 py-0.5 rounded font-extrabold ${change > 0 ? 'bg-good/15 text-good' : change < 0 ? 'bg-bad/15 text-bad' : 'text-faint'}`}>
                               {change > 0 ? `+${change}` : change}
                             </span>
+                            {isClosed && (() => {
+                              const badge = getWebClosedBadge(sc?.closedCard);
+                              return (
+                                <span class={`text-[8px] font-extrabold uppercase border px-1 py-0.2 rounded ${badge.class}`}>
+                                  {badge.emoji}
+                                </span>
+                              );
+                            })()}
                             {isEdited && (
                               <span class="text-[8px] font-extrabold uppercase text-primary border border-primary/30 bg-primary/10 px-1 py-0.2 rounded">
                                 edit

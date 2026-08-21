@@ -1,4 +1,3 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { ActivityIndicator, ScrollView, Text, TouchableOpacity, View } from 'react-native';
@@ -11,8 +10,7 @@ import { formatDate } from '@/lib/format';
 import { useT } from '@/lib/i18n';
 import { formatSignedScore, rankByScore, type TieBreaker } from '@/lib/score';
 import { useThemeColor } from '@/lib/theme';
-
-const MEDALS = ['#a0740c', '#787f8c', '#b0713f'];
+import { useSettingsStore } from '@/store/settingsStore';
 
 function medalEmoji(rank: number): string {
   if (rank === 1) return '🥇';
@@ -42,6 +40,7 @@ export default function SeasonPlayerScreen() {
   const primary = useThemeColor('primary');
   const good = useThemeColor('good');
   const bad = useThemeColor('bad');
+  const shareCode = useSettingsStore((s) => s.shareCodes[circleId] ?? null);
 
   const [stats, setStats] = useState<SeasonPlayerStat[]>([]);
   const [history, setHistory] = useState<SessionSummary[]>([]);
@@ -176,6 +175,7 @@ export default function SeasonPlayerScreen() {
     <SafeAreaView style={{ flex: 1, backgroundColor: bg }} edges={['top']}>
       <ScreenHeader
         title={stat.player.name}
+        shareCode={shareCode}
         onBack={() => router.back()}
         right={
           <Text style={{ color: stat.total >= 0 ? good : bad }} className="text-xl font-extrabold tabular-nums">

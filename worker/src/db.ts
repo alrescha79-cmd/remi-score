@@ -41,7 +41,8 @@ const SCHEMA = `
     player_id INTEGER NOT NULL,
     score_change INTEGER,
     cumulative_total INTEGER NOT NULL,
-    is_edited INTEGER NOT NULL DEFAULT 0
+    is_edited INTEGER NOT NULL DEFAULT 0,
+    closed_card TEXT DEFAULT NULL
   );
 
   CREATE TABLE IF NOT EXISTS session_players (
@@ -68,6 +69,10 @@ export async function ensureSchema(db: D1Database): Promise<void> {
     const isEditedCol = (tableInfo.results ?? []).find((c: any) => c.name === 'is_edited');
     if (!isEditedCol) {
       await db.prepare('ALTER TABLE scores ADD COLUMN is_edited INTEGER NOT NULL DEFAULT 0').run();
+    }
+    const closedCardCol = (tableInfo.results ?? []).find((c: any) => c.name === 'closed_card');
+    if (!closedCardCol) {
+      await db.prepare('ALTER TABLE scores ADD COLUMN closed_card TEXT DEFAULT NULL').run();
     }
   } catch {
     // Ignore column addition error
@@ -120,7 +125,7 @@ export interface SyncTables {
   players: { id: number; name: string; circle_id: number; created_at: string }[];
   sessions: { id: number; circle_id: number; label: string | null; status: string; created_at: string; completed_at: string | null }[];
   rounds: { id: number; session_id: number; round_number: number; timestamp: string }[];
-  scores: { id: number; round_id: number; player_id: number; score_change: number | null; cumulative_total: number; is_edited?: number }[];
+  scores: { id: number; round_id: number; player_id: number; score_change: number | null; cumulative_total: number; is_edited?: number; closed_card?: string | null }[];
   session_players: { session_id: number; player_id: number; is_active: number }[];
 }
 
@@ -235,8 +240,8 @@ export async function upsertCircle(db: D1Database, payload: SyncPayload, updated
       .bind(r.id, r.session_id, r.round_number, r.timestamp));
   }
   for (const sc of tables.scores) {
-    stmts.push(db.prepare('INSERT INTO scores (id, round_id, player_id, score_change, cumulative_total, is_edited) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(sc.id, sc.round_id, sc.player_id, sc.score_change ?? null, sc.cumulative_total, sc.is_edited ?? 0));
+    stmts.push(db.prepare('INSERT INTO scores (id, round_id, player_id, score_change, cumulative_total, is_edited, closed_card) VALUES (?, ?, ?, ?, ?, ?, ?)')
+      .bind(sc.id, sc.round_id, sc.player_id, sc.score_change ?? null, sc.cumulative_total, sc.is_edited ?? 0, sc.closed_card ?? null));
   }
   for (const sp of tables.session_players) {
     stmts.push(db.prepare('INSERT INTO session_players (session_id, player_id, is_active) VALUES (?, ?, ?)')

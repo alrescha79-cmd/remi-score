@@ -116,6 +116,9 @@ const MIGRATIONS: string[] = [
   `
   ALTER TABLE scores ADD COLUMN is_edited INTEGER NOT NULL DEFAULT 0;
   `,
+  `
+  ALTER TABLE scores ADD COLUMN closed_card TEXT DEFAULT NULL;
+  `,
 ];
 
 let dbPromise: Promise<SQLiteDatabase> | null = null;

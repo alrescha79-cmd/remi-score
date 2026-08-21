@@ -14,10 +14,61 @@ interface Props {
   roundNumber?: number;
   afk?: boolean;
   isEdited?: boolean;
+  closedCard?: string | null;
   onPress?: () => void;
 }
 
-export default function PlayerCard({ rank, name, total, delta, roundNumber, afk, isEdited, onPress }: Props) {
+function getClosedBadgeStyle(type: string | null | undefined) {
+  switch (type) {
+    case 'number':
+      return {
+        bg: 'bg-emerald-100 dark:bg-emerald-950/40',
+        border: 'border-emerald-400 dark:border-emerald-600',
+        text: 'text-emerald-800 dark:text-emerald-300',
+        iconBg: '#ffffff',
+        icon: '🃖',
+        label: '50',
+      };
+    case 'letter':
+      return {
+        bg: 'bg-blue-100 dark:bg-blue-950/40',
+        border: 'border-blue-400 dark:border-blue-600',
+        text: 'text-blue-800 dark:text-blue-300',
+        iconBg: '#ffffff',
+        icon: '🂭',
+        label: '100',
+      };
+    case 'ace':
+      return {
+        bg: 'bg-amber-100 dark:bg-amber-950/40',
+        border: 'border-amber-400 dark:border-amber-600',
+        text: 'text-amber-800 dark:text-amber-300',
+        iconBg: '#ffffff',
+        icon: '🃁',
+        label: '150',
+      };
+    case 'joker':
+      return {
+        bg: 'bg-purple-100 dark:bg-purple-950/40',
+        border: 'border-purple-400 dark:border-purple-600',
+        text: 'text-purple-800 dark:text-purple-300',
+        iconBg: '#ffffff',
+        icon: '🃏',
+        label: '250',
+      };
+    default:
+      return {
+        bg: 'bg-amber-100 dark:bg-amber-950/40',
+        border: 'border-amber-400 dark:border-amber-600',
+        text: 'text-amber-800 dark:text-amber-300',
+        iconBg: '#ffffff',
+        icon: '🎴',
+        label: '',
+      };
+  }
+}
+
+export default function PlayerCard({ rank, name, total, delta, roundNumber, afk, isEdited, closedCard, onPress }: Props) {
   const t = useT();
   const isMedal = rank >= 1 && rank <= 3;
 
@@ -31,6 +82,7 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
   const bad = useThemeColor('bad');
 
   const totalColor = total > 0 ? good : total < 0 ? bad : inkMuted;
+  const closedStyle = getClosedBadgeStyle(closedCard);
 
   return (
     <TouchableOpacity
@@ -66,6 +118,13 @@ export default function PlayerCard({ rank, name, total, delta, roundNumber, afk,
             <Text className="text-xs" style={{ color: inkMuted }}>
               {t('session.roundLabel', { n: roundNumber })}: {delta === null || afk ? t('round.absentShort') : formatSignedScore(delta)}
             </Text>
+            {closedCard && !afk && (
+              <View className={`rounded ${closedStyle.bg} border ${closedStyle.border} px-1 py-0.2`}>
+                <Text className={`text-[9px] font-extrabold uppercase ${closedStyle.text}`}>
+                  {closedStyle.icon} {closedStyle.label ? `+${closedStyle.label}` : t('round.closedBadge')}
+                </Text>
+              </View>
+            )}
             {isEdited && !afk && (
               <View className="rounded bg-primary/10 border border-primary/30 px-1 py-0.2">
                 <Text className="text-[9px] font-extrabold uppercase" style={{ color: primary }}>

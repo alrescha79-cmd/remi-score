@@ -66,7 +66,7 @@ export default function CloudSyncSection() {
     if (!useSettingsStore.getState().shareCodes[selectedCircleId]) {
       setShareCode(selectedCircleId, generateShareCode());
     }
-  }, [cloudSyncMode, selectedCircleId]);
+  }, [cloudSyncMode, selectedCircleId, setShareCode]);
 
   const code = selectedCircleId ? shareCodes[selectedCircleId] : undefined;
   const shareUrl = code ? `${DEFAULT_CLOUD_WORKER_URL.replace(/\/$/, '')}/c/${code}` : null;
