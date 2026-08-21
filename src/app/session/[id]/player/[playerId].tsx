@@ -244,24 +244,26 @@ export default function PlayerDetailScreen() {
                 </Text>
                 <Text className="mt-0.5 text-xs" style={{ color: inkMuted }}>{formatTime(r.timestamp)}</Text>
               </View>
-              <View className="w-20 flex-col items-end justify-center">
+              <View className="flex-1 flex-row items-center justify-end gap-1.5">
                 {r.closed_card != null && r.score_change !== null && (() => {
                   const s = getClosedBadgeStyle(r.closed_card);
                   return (
-                    <View className={`rounded ${s.bg} border ${s.border} px-1 py-0.2 -mb-0.5`}>
-                      <Text className={`text-[8px] font-extrabold uppercase ${s.text}`}>
+                    <View className={`rounded ${s.bg} border ${s.border} px-1.5 py-0.5`}>
+                      <Text className={`text-[9px] font-extrabold uppercase ${s.text}`}>
                         {s.icon} {s.label ? `+${s.label}` : t('round.closedBadge')}
                       </Text>
                     </View>
                   );
                 })()}
                 {r.is_edited === 1 && r.score_change !== null && (
-                  <Text className="text-[8px] font-extrabold uppercase text-primary -mb-0.5">
-                    edit
-                  </Text>
+                  <View className="rounded bg-primary/10 border border-primary/30 px-1 py-0.5">
+                    <Text className="text-[8px] font-extrabold uppercase text-primary">
+                      edit
+                    </Text>
+                  </View>
                 )}
                 <Text
-                  className="text-right text-base font-extrabold tabular-nums"
+                  className="min-w-[44px] text-right text-base font-extrabold tabular-nums"
                   style={{ color: scoreColor(r.score_change, good, bad, inkMuted) }}
                 >
                   {r.score_change === null ? t('round.absentShort') : formatSignedScore(r.score_change)}
